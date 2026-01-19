@@ -142,22 +142,54 @@ class KalshiClient:
         Get trending/active markets based on volume and recent activity
         This filters for markets that would make interesting articles
         """
-        markets_data = self.get_markets(limit=100, status="open")
-        markets = markets_data.get("markets", [])
+        # Sports ticker prefixes to filter out
+        SPORTS_PREFIXES = (
+            'KXNBA', 'KXNFL', 'KXMLB', 'KXNHL', 'KXMLS', 'KXCFB', 'KXCBB',
+            'KXMV', 'KXSOC', 'KXTEN', 'KXGOLF', 'KXUFC', 'KXBOX', 'KXNASCAR',
+            'KXESPORT', 'INX', 'INXD'  # Also filter index/derivatives
+        )
 
-        if not markets:
+        all_markets = []
+        cursor = None
+
+        # Fetch multiple pages to find non-sports markets
+        for _ in range(3):  # Up to 3 pages
+            markets_data = self.get_markets(limit=100, status="open", cursor=cursor)
+            markets = markets_data.get("markets", [])
+            cursor = markets_data.get("cursor")
+
+            # Filter out sports markets
+            for market in markets:
+                ticker = market.get("ticker", "")
+                event_ticker = market.get("event_ticker", "")
+
+                # Skip sports markets
+                if any(ticker.startswith(prefix) or event_ticker.startswith(prefix)
+                       for prefix in SPORTS_PREFIXES):
+                    continue
+
+                all_markets.append(market)
+
+            if not cursor or len(all_markets) >= 50:
+                break
+
+        if not all_markets:
+            logger.warning("No non-sports markets found")
             return []
 
         # Score markets by "interestingness" for article generation
         scored_markets = []
-        for market in markets:
+        for market in all_markets:
             score = self._calculate_market_score(market)
-            if score > 0:
+            # Lower threshold for non-sports markets
+            if score >= 0:
                 market["_interest_score"] = score
                 scored_markets.append(market)
 
         # Sort by interest score and return top N
         scored_markets.sort(key=lambda m: m.get("_interest_score", 0), reverse=True)
+
+        logger.info(f"Found {len(scored_markets)} non-sports markets")
         return scored_markets[:limit]
 
     def _calculate_market_score(self, market: Dict[str, Any]) -> float:
