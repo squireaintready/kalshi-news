@@ -287,8 +287,29 @@ def watchlist():
     # Get user's current watchlist
     user_bets = user_manager.get_user_bets(current_user.id)
 
-    # Get all articles to show available tickers
+    # Enrich with market titles from cache or API
     all_articles = cache.get_all_articles()
+    ticker_to_title = {a.get('market_ticker'): a.get('market_title') for a in all_articles}
+
+    from kalshi_client import get_client
+    client = get_client()
+
+    for bet in user_bets:
+        ticker = bet.get('market_ticker')
+        if ticker in ticker_to_title:
+            bet['title'] = ticker_to_title[ticker]
+        else:
+            # Try to fetch from API
+            try:
+                market = client.get_market(ticker)
+                if market:
+                    bet['title'] = market.get('title', ticker)
+                else:
+                    bet['title'] = ticker
+            except:
+                bet['title'] = ticker
+
+    # Get available tickers from articles for quick add
     available_tickers = list({a.get('market_ticker') for a in all_articles if a.get('market_ticker')})
 
     return render_template('watchlist.html',

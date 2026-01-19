@@ -39,7 +39,7 @@
             <div class="watchlist-items">
                 {% for bet in user_bets %}
                 <div class="watchlist-item">
-                    <span class="ticker-name">{{ bet.market_ticker }}</span>
+                    <span class="watchlist-title">{{ bet.title or bet.market_ticker }}</span>
                     <form method="POST" class="remove-form">
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="ticker" value="{{ bet.market_ticker }}">
@@ -89,10 +89,7 @@ searchInput.addEventListener('input', function() {
                         <div class="search-result-item">
                             <div class="result-info">
                                 <div class="result-title">${escapeHtml(m.title)}</div>
-                                <div class="result-meta">
-                                    <span class="result-ticker">${m.ticker}</span>
-                                    <span class="result-prob">${m.probability}%</span>
-                                </div>
+                                <span class="result-prob">${m.probability}% chance</span>
                             </div>
                             <form method="POST" class="add-form">
                                 <input type="hidden" name="action" value="add">

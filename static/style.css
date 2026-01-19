@@ -1083,27 +1083,15 @@ a:hover {
 }
 
 .result-title {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 500;
-    margin-bottom: 0.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.result-meta {
-    display: flex;
-    gap: 0.75rem;
-    font-size: 0.75rem;
-}
-
-.result-ticker {
-    font-family: monospace;
-    color: var(--color-text-muted);
+    margin-bottom: 0.35rem;
+    line-height: 1.4;
 }
 
 .result-prob {
-    color: var(--color-accent);
+    font-size: 0.8rem;
+    color: var(--color-green);
     font-weight: 600;
 }
 
@@ -1188,15 +1176,17 @@ a:hover {
 .watchlist-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
     background: var(--color-bg);
     border-radius: 8px;
 }
 
-.ticker-name {
-    font-family: monospace;
+.watchlist-title {
     font-size: 0.9rem;
+    line-height: 1.4;
+    flex: 1;
 }
 
 .remove-form {
