@@ -21,10 +21,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "kalshi-news-secret-key-change-me")
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
 
-# Cache Configuration
-CACHE_TYPE = os.getenv("CACHE_TYPE", "file")  # "file" or "redis"
+# Cache/Database Configuration
+CACHE_TYPE = os.getenv("CACHE_TYPE", "file")  # "file", "redis", or "postgres"
 CACHE_DIR = os.getenv("CACHE_DIR", "cache")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 CACHE_TTL = int(os.getenv("CACHE_TTL", "3600"))  # 1 hour default
 
 # Scheduler Configuration

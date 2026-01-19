@@ -14,5 +14,8 @@ APScheduler>=3.10.0
 # Caching (optional - for Redis support)
 redis>=5.0.0
 
+# Database (optional - for PostgreSQL support)
+psycopg2-binary>=2.9.0
+
 # Production server (optional)
 gunicorn>=21.0.0
