@@ -249,100 +249,74 @@ def dashboard():
                            all_articles=all_articles[:10])
 
 
-@app.route('/connect-kalshi', methods=['GET', 'POST'])
+@app.route('/watchlist', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("5 per hour")
-def connect_kalshi():
-    """Connect Kalshi account to sync bets"""
-    if request.method == 'POST':
-        kalshi_email = request.form.get('kalshi_email', '').strip()
-        kalshi_password = request.form.get('kalshi_password', '')
-
-        if not kalshi_email or not kalshi_password:
-            flash('Please provide your Kalshi credentials.', 'error')
-            return render_template('connect_kalshi.html')
-
-        # Try to authenticate with Kalshi and fetch positions
-        from kalshi_client import KalshiClient
-        client = KalshiClient()
-
-        try:
-            # Temporarily set credentials
-            import config as cfg
-            original_email = cfg.KALSHI_EMAIL
-            original_password = cfg.KALSHI_PASSWORD
-            cfg.KALSHI_EMAIL = kalshi_email
-            cfg.KALSHI_PASSWORD = kalshi_password
-
-            # Try to login
-            client._login()
-
-            # Fetch user's positions
-            positions = client._make_request("GET", "/portfolio/positions")
-            market_positions = positions.get("market_positions", [])
-
-            # Save to database
-            user_manager = get_user_manager()
-            user_manager.connect_kalshi(current_user.id, kalshi_email)
-
-            bets = []
-            for pos in market_positions:
-                bets.append({
-                    "market_ticker": pos.get("ticker"),
-                    "position": "YES" if pos.get("position", 0) > 0 else "NO",
-                    "quantity": abs(pos.get("position", 0)),
-                    "average_price": pos.get("average_price")
-                })
-
-            if bets:
-                user_manager.save_user_bets(current_user.id, bets)
-                flash(f'Successfully synced {len(bets)} positions from Kalshi!', 'success')
-
-                # Generate articles for bets that don't have coverage
-                _generate_articles_for_bets(bets)
-            else:
-                flash('Connected to Kalshi, but no open positions found.', 'warning')
-
-            # Restore original credentials
-            cfg.KALSHI_EMAIL = original_email
-            cfg.KALSHI_PASSWORD = original_password
-
-            return redirect(url_for('dashboard'))
-
-        except Exception as e:
-            logger.error(f"Failed to connect Kalshi: {e}")
-            flash('Failed to connect to Kalshi. Please check your credentials.', 'error')
-            # Restore original credentials
-            cfg.KALSHI_EMAIL = original_email
-            cfg.KALSHI_PASSWORD = original_password
-
-    return render_template('connect_kalshi.html')
-
-
-def _generate_articles_for_bets(bets):
-    """Generate articles for user's bets if they don't exist"""
+@limiter.limit("30 per hour")
+def watchlist():
+    """Manage user's market watchlist"""
+    user_manager = get_user_manager()
     cache = get_cache()
-    existing_tickers = {a.get('market_ticker') for a in cache.get_all_articles()}
 
-    from kalshi_client import get_client
-    from article_generator import get_generator
+    if request.method == 'POST':
+        action = request.form.get('action')
+        ticker = request.form.get('ticker', '').strip().upper()
 
-    client = get_client()
-    generator = get_generator()
+        if action == 'add' and ticker:
+            # Verify ticker exists on Kalshi
+            from kalshi_client import get_client
+            client = get_client()
+            market = client.get_market(ticker)
 
-    for bet in bets:
-        ticker = bet.get('market_ticker')
-        if ticker and ticker not in existing_tickers:
-            try:
-                market = client.get_market(ticker)
-                if market:
-                    enriched = client.enrich_market_data(market)
-                    article = generator.generate_article(enriched)
-                    if article:
-                        cache.add_article(article)
-                        logger.info(f"Generated article for user bet: {ticker}")
-            except Exception as e:
-                logger.error(f"Failed to generate article for {ticker}: {e}")
+            if market:
+                user_manager.add_user_ticker(current_user.id, ticker)
+                flash(f'Added {ticker} to your watchlist!', 'success')
+
+                # Generate article if it doesn't exist
+                existing_tickers = {a.get('market_ticker') for a in cache.get_all_articles()}
+                if ticker not in existing_tickers:
+                    _generate_article_for_ticker(ticker)
+            else:
+                flash(f'Market ticker "{ticker}" not found on Kalshi.', 'error')
+
+        elif action == 'remove' and ticker:
+            user_manager.remove_user_ticker(current_user.id, ticker)
+            flash(f'Removed {ticker} from your watchlist.', 'success')
+
+        return redirect(url_for('watchlist'))
+
+    # Get user's current watchlist
+    user_bets = user_manager.get_user_bets(current_user.id)
+
+    # Get all articles to show available tickers
+    all_articles = cache.get_all_articles()
+    available_tickers = list({a.get('market_ticker') for a in all_articles if a.get('market_ticker')})
+
+    return render_template('watchlist.html',
+                           user_bets=user_bets,
+                           available_tickers=available_tickers)
+
+
+def _generate_article_for_ticker(ticker: str):
+    """Generate an article for a specific ticker"""
+    try:
+        from kalshi_client import get_client
+        from article_generator import get_generator
+
+        client = get_client()
+        generator = get_generator()
+        cache = get_cache()
+
+        market = client.get_market(ticker)
+        if market:
+            enriched = client.enrich_market_data(market)
+            article = generator.generate_article(enriched)
+            if article:
+                cache.add_article(article)
+                logger.info(f"Generated article for ticker: {ticker}")
+    except Exception as e:
+        logger.error(f"Failed to generate article for {ticker}: {e}")
+
+
 
 
 # Main Routes

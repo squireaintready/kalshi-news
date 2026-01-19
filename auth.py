@@ -197,8 +197,8 @@ class UserManager:
         finally:
             conn.close()
 
-    def connect_kalshi(self, user_id: str, kalshi_email: str) -> bool:
-        """Connect Kalshi account to user"""
+    def set_kalshi_email(self, user_id: str, kalshi_email: str) -> bool:
+        """Set user's Kalshi email for matching"""
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
@@ -210,7 +210,42 @@ class UserManager:
                 conn.commit()
                 return True
         except Exception as e:
-            logger.error(f"Failed to connect Kalshi: {e}")
+            logger.error(f"Failed to set Kalshi email: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def add_user_ticker(self, user_id: str, ticker: str) -> bool:
+        """Add a ticker to user's watchlist"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_bets (user_id, market_ticker, position)
+                    VALUES (%s, %s, 'WATCHING')
+                    ON CONFLICT (user_id, market_ticker) DO NOTHING
+                """, (user_id, ticker.upper().strip()))
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to add ticker: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def remove_user_ticker(self, user_id: str, ticker: str) -> bool:
+        """Remove a ticker from user's watchlist"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM user_bets WHERE user_id = %s AND market_ticker = %s",
+                    (user_id, ticker.upper().strip())
+                )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to remove ticker: {e}")
             return False
         finally:
             conn.close()

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}My Watchlist - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="watchlist-page">
+    <div class="page-header">
+        <h1>My Watchlist</h1>
+        <p>Add market tickers to follow and get personalized articles.</p>
+    </div>
+
+    <div class="watchlist-grid">
+        <section class="add-ticker-section">
+            <h2>Add a Market</h2>
+            <form method="POST" class="add-ticker-form">
+                <input type="hidden" name="action" value="add">
+                <div class="input-group">
+                    <input type="text" name="ticker" placeholder="Enter ticker (e.g., KXELONMARS-99)"
+                           required pattern="[A-Za-z0-9\-]+" class="ticker-input">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+                <p class="input-help">Enter a Kalshi market ticker. Find tickers on <a href="https://kalshi.com/markets" target="_blank">kalshi.com/markets</a></p>
+            </form>
+
+            {% if available_tickers %}
+            <div class="quick-add">
+                <h3>Quick Add from Recent Articles</h3>
+                <div class="ticker-chips">
+                    {% for ticker in available_tickers[:12] %}
+                    <form method="POST" class="chip-form">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="ticker" value="{{ ticker }}">
+                        <button type="submit" class="ticker-chip">{{ ticker }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="current-watchlist">
+            <h2>Your Watchlist</h2>
+            {% if user_bets %}
+            <div class="watchlist-items">
+                {% for bet in user_bets %}
+                <div class="watchlist-item">
+                    <span class="ticker-name">{{ bet.market_ticker }}</span>
+                    <form method="POST" class="remove-form">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="ticker" value="{{ bet.market_ticker }}">
+                        <button type="submit" class="remove-btn" title="Remove">&times;</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-watchlist">
+                <p>Your watchlist is empty. Add some market tickers above!</p>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="back-link-container">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

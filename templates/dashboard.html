@@ -8,13 +8,13 @@
         <p>Welcome back, {{ current_user.email }}</p>
     </div>
 
-    {% if not current_user.kalshi_connected %}
+    {% if not user_bets %}
     <div class="connect-banner">
         <div class="connect-banner-content">
-            <h3>Connect Your Kalshi Account</h3>
-            <p>Link your Kalshi account to get personalized articles about your positions.</p>
+            <h3>Start Your Watchlist</h3>
+            <p>Add market tickers to follow and get personalized articles about your interests.</p>
         </div>
-        <a href="{{ url_for('connect_kalshi') }}" class="btn btn-primary">Connect Kalshi</a>
+        <a href="{{ url_for('watchlist') }}" class="btn btn-primary">Add Markets</a>
     </div>
     {% endif %}
 
@@ -46,45 +46,14 @@
 
     {% if user_bets %}
     <section class="dashboard-section">
-        <h2>Your Positions</h2>
-        <div class="bets-table-wrapper">
-            <table class="bets-table">
-                <thead>
-                    <tr>
-                        <th>Market</th>
-                        <th>Position</th>
-                        <th>Quantity</th>
-                        <th>Avg Price</th>
-                        <th>Last Synced</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bet in user_bets %}
-                    <tr>
-                        <td class="market-ticker">{{ bet.market_ticker }}</td>
-                        <td>
-                            <span class="position-badge position-{{ bet.position|lower }}">
-                                {{ bet.position }}
-                            </span>
-                        </td>
-                        <td>{{ bet.quantity }}</td>
-                        <td>{{ bet.average_price }}¢</td>
-                        <td>{{ bet.synced_at|format_date }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="section-header">
+            <h2>Your Watchlist</h2>
+            <a href="{{ url_for('watchlist') }}" class="btn btn-secondary btn-small">Manage</a>
         </div>
-        <div class="sync-actions">
-            <a href="{{ url_for('connect_kalshi') }}" class="btn btn-secondary">Sync Positions</a>
-        </div>
-    </section>
-    {% elif current_user.kalshi_connected %}
-    <section class="dashboard-section">
-        <div class="empty-state">
-            <h3>No Positions Found</h3>
-            <p>You don't have any open positions on Kalshi, or they haven't been synced yet.</p>
-            <a href="{{ url_for('connect_kalshi') }}" class="btn btn-secondary">Sync Again</a>
+        <div class="watchlist-preview">
+            {% for bet in user_bets %}
+            <span class="ticker-tag">{{ bet.market_ticker }}</span>
+            {% endfor %}
         </div>
     </section>
     {% endif %}

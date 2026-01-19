@@ -91,12 +91,15 @@ a:hover {
 
 .main-nav {
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 1.25rem;
 }
 
 .main-nav a {
     color: var(--color-text-muted);
     font-weight: 500;
+    display: flex;
+    align-items: center;
 }
 
 .main-nav a:hover {
@@ -644,9 +647,10 @@ a:hover {
 
 /* Nav Buttons */
 .nav-btn {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.9rem;
     border-radius: 6px;
     font-size: 0.9rem;
+    line-height: 1.4;
 }
 
 .nav-btn-primary {
@@ -967,6 +971,196 @@ a:hover {
     color: #a855f7;
 }
 
+/* Watchlist Page */
+.watchlist-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: var(--color-text-muted);
+}
+
+.watchlist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.add-ticker-section,
+.current-watchlist {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.add-ticker-section h2,
+.current-watchlist h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.add-ticker-form .input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ticker-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.ticker-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+.input-help {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.75rem;
+}
+
+.quick-add {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.quick-add h3 {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.ticker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip-form {
+    display: inline;
+}
+
+.ticker-chip {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ticker-chip:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.watchlist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+}
+
+.ticker-name {
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.remove-form {
+    display: inline;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    line-height: 1;
+}
+
+.remove-btn:hover {
+    color: var(--color-red);
+}
+
+.empty-watchlist {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--color-text-muted);
+}
+
+.back-link-container {
+    text-align: center;
+}
+
+/* Dashboard section header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.section-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.watchlist-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ticker-tag {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
 /* Error Pages */
 .error-page {
     text-align: center;
@@ -1026,5 +1220,9 @@ a:hover {
 
     .auth-card {
         padding: 1.5rem;
+    }
+
+    .watchlist-grid {
+        grid-template-columns: 1fr;
     }
 }
