@@ -1016,26 +1016,128 @@ a:hover {
     gap: 0.5rem;
 }
 
-.ticker-input {
-    flex: 1;
-    padding: 0.75rem 1rem;
+/* Search */
+.search-container {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
     border-radius: 8px;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-text);
     font-size: 1rem;
-    text-transform: uppercase;
 }
 
-.ticker-input:focus {
+.search-input:focus {
     outline: none;
     border-color: var(--color-accent);
 }
 
-.input-help {
-    font-size: 0.8rem;
+.search-input::placeholder {
     color: var(--color-text-muted);
-    margin-top: 0.75rem;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    max-height: 350px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.search-results.active {
+    display: block;
+}
+
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    gap: 1rem;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: var(--color-bg);
+}
+
+.result-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.result-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.result-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.result-ticker {
+    font-family: monospace;
+    color: var(--color-text-muted);
+}
+
+.result-prob {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.add-form {
+    flex-shrink: 0;
+}
+
+.add-btn {
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-btn:hover {
+    background: var(--color-accent-hover);
+}
+
+.search-loading,
+.no-results,
+.search-error {
+    padding: 1.25rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.search-error {
+    color: var(--color-red);
 }
 
 .quick-add {

@@ -138,6 +138,77 @@ class KalshiClient:
         except KalshiAPIError:
             return []
 
+    def search_markets(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Search for markets by keyword
+        Returns markets matching the search query
+        """
+        SPORTS_PREFIXES = (
+            'KXNBA', 'KXNFL', 'KXMLB', 'KXNHL', 'KXMLS', 'KXCFB', 'KXCBB',
+            'KXMV', 'KXSOC', 'KXTEN', 'KXGOLF', 'KXUFC', 'KXBOX', 'KXNASCAR',
+            'KXESPORT', 'INX', 'INXD'
+        )
+
+        try:
+            self._ensure_authenticated()
+            # First try searching events
+            events_data = self._make_request("GET", "/events", params={
+                "limit": 50,
+                "status": "open"
+            })
+            events = events_data.get("events", [])
+
+            # Filter events by search query
+            query_lower = query.lower()
+            matching_markets = []
+
+            for event in events:
+                event_ticker = event.get("event_ticker", "")
+                title = event.get("title", "")
+
+                # Skip sports
+                if any(event_ticker.startswith(p) for p in SPORTS_PREFIXES):
+                    continue
+
+                # Check if query matches event title
+                if query_lower in title.lower():
+                    # Get markets for this event
+                    markets = self.get_markets_by_event(event_ticker)
+                    for m in markets:
+                        m["_event_title"] = title
+                        matching_markets.append(m)
+
+                    if len(matching_markets) >= limit:
+                        break
+
+                    time.sleep(0.2)  # Rate limiting
+
+            # Also search general markets endpoint
+            if len(matching_markets) < limit:
+                markets_data = self._make_request("GET", "/markets", params={
+                    "limit": 100,
+                    "status": "open"
+                })
+                for market in markets_data.get("markets", []):
+                    ticker = market.get("ticker", "")
+                    title = market.get("title", "")
+                    event_ticker = market.get("event_ticker", "")
+
+                    # Skip sports
+                    if any(ticker.startswith(p) or event_ticker.startswith(p) for p in SPORTS_PREFIXES):
+                        continue
+
+                    # Check if query matches
+                    if query_lower in title.lower() or query_lower in ticker.lower():
+                        if market not in matching_markets:
+                            matching_markets.append(market)
+
+            return matching_markets[:limit]
+
+        except KalshiAPIError as e:
+            logger.error(f"Failed to search markets: {e}")
+            return []
+
     def get_markets_by_event(self, event_ticker: str) -> List[Dict[str, Any]]:
         """Fetch markets for a specific event"""
         try:

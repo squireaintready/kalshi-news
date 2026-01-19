@@ -394,6 +394,33 @@ def api_article(article_id):
     return jsonify({"error": "Article not found"}), 404
 
 
+@app.route('/api/search-markets')
+@login_required
+@limiter.limit("30 per hour")
+def api_search_markets():
+    """API: Search Kalshi markets by keyword"""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify({"markets": [], "error": "Query too short"})
+
+    from kalshi_client import get_client
+    client = get_client()
+    markets = client.search_markets(query, limit=15)
+
+    # Simplify response
+    results = []
+    for m in markets:
+        results.append({
+            "ticker": m.get("ticker"),
+            "title": m.get("title"),
+            "event_title": m.get("_event_title", ""),
+            "probability": m.get("yes_bid") or m.get("last_price", 50),
+            "volume": m.get("volume", 0)
+        })
+
+    return jsonify({"markets": results})
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(e):

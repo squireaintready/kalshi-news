@@ -5,27 +5,23 @@
 <div class="watchlist-page">
     <div class="page-header">
         <h1>My Watchlist</h1>
-        <p>Add market tickers to follow and get personalized articles.</p>
+        <p>Search for markets to follow and get personalized articles.</p>
     </div>
 
     <div class="watchlist-grid">
         <section class="add-ticker-section">
-            <h2>Add a Market</h2>
-            <form method="POST" class="add-ticker-form">
-                <input type="hidden" name="action" value="add">
-                <div class="input-group">
-                    <input type="text" name="ticker" placeholder="Enter ticker (e.g., KXELONMARS-99)"
-                           required pattern="[A-Za-z0-9\-]+" class="ticker-input">
-                    <button type="submit" class="btn btn-primary">Add</button>
-                </div>
-                <p class="input-help">Enter a Kalshi market ticker. Find tickers on <a href="https://kalshi.com/markets" target="_blank">kalshi.com/markets</a></p>
-            </form>
+            <h2>Find Markets</h2>
+            <div class="search-container">
+                <input type="text" id="market-search" placeholder="Search markets (e.g., Trump, Bitcoin, Fed...)"
+                       class="search-input" autocomplete="off">
+                <div id="search-results" class="search-results"></div>
+            </div>
 
             {% if available_tickers %}
             <div class="quick-add">
-                <h3>Quick Add from Recent Articles</h3>
+                <h3>From Recent Articles</h3>
                 <div class="ticker-chips">
-                    {% for ticker in available_tickers[:12] %}
+                    {% for ticker in available_tickers[:10] %}
                     <form method="POST" class="chip-form">
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="ticker" value="{{ ticker }}">
@@ -54,7 +50,7 @@
             </div>
             {% else %}
             <div class="empty-watchlist">
-                <p>Your watchlist is empty. Add some market tickers above!</p>
+                <p>Your watchlist is empty. Search for markets above!</p>
             </div>
             {% endif %}
         </section>
@@ -64,4 +60,74 @@
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 </div>
+
+<script>
+const searchInput = document.getElementById('market-search');
+const searchResults = document.getElementById('search-results');
+let searchTimeout = null;
+
+searchInput.addEventListener('input', function() {
+    const query = this.value.trim();
+
+    clearTimeout(searchTimeout);
+
+    if (query.length < 2) {
+        searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
+        return;
+    }
+
+    searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+    searchResults.classList.add('active');
+
+    searchTimeout = setTimeout(() => {
+        fetch(`/api/search-markets?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.markets && data.markets.length > 0) {
+                    searchResults.innerHTML = data.markets.map(m => `
+                        <div class="search-result-item">
+                            <div class="result-info">
+                                <div class="result-title">${escapeHtml(m.title)}</div>
+                                <div class="result-meta">
+                                    <span class="result-ticker">${m.ticker}</span>
+                                    <span class="result-prob">${m.probability}%</span>
+                                </div>
+                            </div>
+                            <form method="POST" class="add-form">
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="ticker" value="${m.ticker}">
+                                <button type="submit" class="add-btn">+ Add</button>
+                            </form>
+                        </div>
+                    `).join('');
+                } else {
+                    searchResults.innerHTML = '<div class="no-results">No markets found. Try different keywords.</div>';
+                }
+            })
+            .catch(err => {
+                searchResults.innerHTML = '<div class="search-error">Search failed. Please try again.</div>';
+            });
+    }, 300);
+});
+
+// Close results when clicking outside
+document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.remove('active');
+    }
+});
+
+searchInput.addEventListener('focus', function() {
+    if (searchResults.innerHTML) {
+        searchResults.classList.add('active');
+    }
+});
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
 {% endblock %}
