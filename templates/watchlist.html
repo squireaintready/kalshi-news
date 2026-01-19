@@ -5,26 +5,60 @@
 <div class="watchlist-page">
     <div class="page-header">
         <h1>My Watchlist</h1>
-        <p>Search topics to follow and get personalized articles.</p>
+        <p>Follow specific bets or categories to get personalized articles.</p>
     </div>
 
     <div class="watchlist-grid">
-        <section class="add-ticker-section">
-            <h2>Find Topics</h2>
+        <section class="add-section">
+            <h2>Add Category</h2>
+            <p class="section-desc">Follow a topic to see all related articles (e.g., bitcoin, inflation, iran)</p>
+            <form method="POST" class="add-category-form">
+                <input type="hidden" name="action" value="add_category">
+                <div class="input-group">
+                    <input type="text" name="keyword" placeholder="Enter a topic..."
+                           class="search-input" required>
+                    <button type="submit" class="btn btn-primary">Follow</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="add-section">
+            <h2>Add Specific Bet</h2>
+            <p class="section-desc">Search for a specific prediction market to follow</p>
             <div class="search-container">
-                <input type="text" id="market-search" placeholder="Search topics (e.g., Trump, Bitcoin, Fed, inflation...)"
+                <input type="text" id="market-search" placeholder="Search bets (e.g., Trump tariffs, Fed rate...)"
                        class="search-input" autocomplete="off">
                 <div id="search-results" class="search-results"></div>
             </div>
         </section>
+    </div>
 
-        <section class="current-watchlist">
-            <h2>Your Watchlist</h2>
-            {% if user_bets %}
+    <div class="watchlist-display">
+        {% if categories %}
+        <section class="watchlist-section">
+            <h2>Your Categories</h2>
+            <div class="watchlist-items">
+                {% for cat in categories %}
+                <div class="watchlist-item category-item">
+                    <span class="category-name">{{ cat }}</span>
+                    <form method="POST" class="remove-form">
+                        <input type="hidden" name="action" value="remove_category">
+                        <input type="hidden" name="keyword" value="{{ cat }}">
+                        <button type="submit" class="remove-btn" title="Remove">&times;</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if user_bets %}
+        <section class="watchlist-section">
+            <h2>Your Bets</h2>
             <div class="watchlist-items">
                 {% for bet in user_bets %}
                 <div class="watchlist-item">
-                    <span class="watchlist-title">{{ bet.title or bet.market_ticker }}</span>
+                    <span class="watchlist-title">{{ bet.title }}</span>
                     <form method="POST" class="remove-form">
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="ticker" value="{{ bet.market_ticker }}">
@@ -33,12 +67,14 @@
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-watchlist">
-                <p>Your watchlist is empty. Search for markets above!</p>
-            </div>
-            {% endif %}
         </section>
+        {% endif %}
+
+        {% if not categories and not user_bets %}
+        <div class="empty-watchlist">
+            <p>Your watchlist is empty. Add categories or bets above!</p>
+        </div>
+        {% endif %}
     </div>
 
     <div class="back-link-container">
@@ -85,16 +121,15 @@ searchInput.addEventListener('input', function() {
                         </div>
                     `).join('');
                 } else {
-                    searchResults.innerHTML = '<div class="no-results">No topics found. Try different keywords.</div>';
+                    searchResults.innerHTML = '<div class="no-results">No bets found. Try adding it as a category instead!</div>';
                 }
             })
             .catch(err => {
                 searchResults.innerHTML = '<div class="search-error">Search failed. Please try again.</div>';
             });
-    }, 300);
+    }, 400);
 });
 
-// Close results when clicking outside
 document.addEventListener('click', function(e) {
     if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
         searchResults.classList.remove('active');

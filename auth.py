@@ -82,6 +82,15 @@ class UserManager:
                         UNIQUE(user_id, market_ticker)
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_categories (
+                        id SERIAL PRIMARY KEY,
+                        user_id VARCHAR(32) REFERENCES users(id),
+                        keyword VARCHAR(100) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, keyword)
+                    )
+                """)
                 conn.commit()
                 logger.info("User tables initialized")
         except Exception as e:
@@ -251,6 +260,67 @@ class UserManager:
         except Exception as e:
             logger.error(f"Failed to remove ticker: {e}")
             return False
+        finally:
+            conn.close()
+
+    def add_user_category(self, user_id: str, keyword: str) -> bool:
+        """Add a category/keyword to follow"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Ensure table exists
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_categories (
+                        id SERIAL PRIMARY KEY,
+                        user_id VARCHAR(32) REFERENCES users(id),
+                        keyword VARCHAR(100) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, keyword)
+                    )
+                """)
+                cur.execute("""
+                    INSERT INTO user_categories (user_id, keyword)
+                    VALUES (%s, %s)
+                    ON CONFLICT (user_id, keyword) DO NOTHING
+                """, (user_id, keyword.lower().strip()))
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to add category: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def remove_user_category(self, user_id: str, keyword: str) -> bool:
+        """Remove a category from user's watchlist"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM user_categories WHERE user_id = %s AND keyword = %s",
+                    (user_id, keyword.lower().strip())
+                )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to remove category: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def get_user_categories(self, user_id: str) -> List[str]:
+        """Get user's followed categories"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT keyword FROM user_categories WHERE user_id = %s ORDER BY created_at DESC",
+                    (user_id,)
+                )
+                return [row[0] for row in cur.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to get categories: {e}")
+            return []
         finally:
             conn.close()
 

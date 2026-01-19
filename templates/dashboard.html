@@ -8,19 +8,36 @@
         <p>Welcome back, {{ current_user.email }}</p>
     </div>
 
-    {% if not user_bets %}
+    {% if not user_bets and not categories %}
     <div class="connect-banner">
         <div class="connect-banner-content">
             <h3>Start Your Watchlist</h3>
-            <p>Follow topics to get personalized articles about what matters to you.</p>
+            <p>Follow categories or specific bets to get personalized articles.</p>
         </div>
-        <a href="{{ url_for('watchlist') }}" class="btn btn-primary">Add Topics</a>
+        <a href="{{ url_for('watchlist') }}" class="btn btn-primary">Get Started</a>
     </div>
+    {% endif %}
+
+    {% if categories or user_bets %}
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h2>Following</h2>
+            <a href="{{ url_for('watchlist') }}" class="btn btn-secondary btn-small">Manage</a>
+        </div>
+        <div class="watchlist-preview">
+            {% for cat in categories %}
+            <span class="category-tag">{{ cat }}</span>
+            {% endfor %}
+            {% for bet in user_bets %}
+            <span class="bet-tag">{{ bet.title[:35] }}{% if bet.title|length > 35 %}...{% endif %}</span>
+            {% endfor %}
+        </div>
+    </section>
     {% endif %}
 
     {% if my_articles %}
     <section class="dashboard-section">
-        <h2>Articles About Your Bets</h2>
+        <h2>Your Articles</h2>
         <div class="articles-grid">
             {% for article in my_articles %}
             <article class="article-card">
@@ -39,20 +56,6 @@
                     <span class="read-time">{{ article.word_count|estimate_read_time }} min read</span>
                 </div>
             </article>
-            {% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-    {% if user_bets %}
-    <section class="dashboard-section">
-        <div class="section-header">
-            <h2>Your Topics</h2>
-            <a href="{{ url_for('watchlist') }}" class="btn btn-secondary btn-small">Manage</a>
-        </div>
-        <div class="watchlist-preview">
-            {% for bet in user_bets %}
-            <span class="topic-tag">{{ bet.title }}</span>
             {% endfor %}
         </div>
     </section>

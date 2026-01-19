@@ -230,21 +230,39 @@ def dashboard():
     cache = get_cache()
     user_manager = get_user_manager()
 
-    # Get user's bets
+    # Get user's bets and categories
     user_bets = user_manager.get_user_bets(current_user.id)
+    categories = user_manager.get_user_categories(current_user.id)
     bet_tickers = [bet['market_ticker'] for bet in user_bets]
 
     # Get all articles
     all_articles = cache.get_all_articles()
 
-    # Filter articles related to user's bets
-    my_articles = [
-        a for a in all_articles
-        if a.get('market_ticker') in bet_tickers
-    ]
+    # Filter articles matching user's bets OR categories
+    my_articles = []
+    seen_ids = set()
+
+    for article in all_articles:
+        if article.get('id') in seen_ids:
+            continue
+
+        # Match by ticker
+        if article.get('market_ticker') in bet_tickers:
+            my_articles.append(article)
+            seen_ids.add(article.get('id'))
+            continue
+
+        # Match by category keywords in title
+        title_lower = (article.get('title', '') + ' ' + article.get('market_title', '')).lower()
+        for cat in categories:
+            if cat.lower() in title_lower:
+                my_articles.append(article)
+                seen_ids.add(article.get('id'))
+                break
 
     return render_template('dashboard.html',
                            user_bets=user_bets,
+                           categories=categories,
                            my_articles=my_articles,
                            all_articles=all_articles[:10])
 
@@ -253,45 +271,56 @@ def dashboard():
 @login_required
 @limiter.limit("60 per hour")
 def watchlist():
-    """Manage user's market watchlist"""
+    """Manage user's watchlist - categories and specific bets"""
     user_manager = get_user_manager()
     cache = get_cache()
 
     if request.method == 'POST':
         action = request.form.get('action')
-        ticker = request.form.get('ticker', '').strip().upper()
-        title = request.form.get('title', '')
 
-        if action == 'add' and ticker:
-            # Add immediately - no validation delay
-            user_manager.add_user_ticker(current_user.id, ticker, title)
-            flash(f'Added to watchlist!', 'success')
+        if action == 'add':
+            ticker = request.form.get('ticker', '').strip().upper()
+            title = request.form.get('title', '')
+            if ticker:
+                user_manager.add_user_ticker(current_user.id, ticker, title)
+                flash('Added to watchlist!', 'success')
+                _queue_article_generation(ticker)
 
-            # Queue background article generation
-            _queue_article_generation(ticker)
+        elif action == 'remove':
+            ticker = request.form.get('ticker', '').strip().upper()
+            if ticker:
+                user_manager.remove_user_ticker(current_user.id, ticker)
+                flash('Removed from watchlist.', 'success')
 
-        elif action == 'remove' and ticker:
-            user_manager.remove_user_ticker(current_user.id, ticker)
-            flash(f'Removed from watchlist.', 'success')
+        elif action == 'add_category':
+            keyword = request.form.get('keyword', '').strip()
+            if keyword:
+                user_manager.add_user_category(current_user.id, keyword)
+                flash(f'Now following "{keyword}"!', 'success')
+
+        elif action == 'remove_category':
+            keyword = request.form.get('keyword', '').strip()
+            if keyword:
+                user_manager.remove_user_category(current_user.id, keyword)
+                flash(f'Unfollowed "{keyword}".', 'success')
 
         return redirect(url_for('watchlist'))
 
-    # Get user's current watchlist - use cached titles only (fast)
+    # Get user's watchlist
     user_bets = user_manager.get_user_bets(current_user.id)
+    categories = user_manager.get_user_categories(current_user.id)
+
+    # Enrich bets with titles from cache
     all_articles = cache.get_all_articles()
     ticker_to_title = {a.get('market_ticker'): a.get('market_title') for a in all_articles}
 
     for bet in user_bets:
         ticker = bet.get('market_ticker')
-        # Use stored title, cached title, or ticker as fallback
         bet['title'] = bet.get('title') or ticker_to_title.get(ticker) or ticker
-
-    # Quick add options from existing articles
-    available_tickers = list({a.get('market_ticker') for a in all_articles if a.get('market_ticker')})[:10]
 
     return render_template('watchlist.html',
                            user_bets=user_bets,
-                           available_tickers=available_tickers)
+                           categories=categories)
 
 
 def _queue_article_generation(ticker: str):
