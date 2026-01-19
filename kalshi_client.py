@@ -140,8 +140,8 @@ class KalshiClient:
 
     def search_markets(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
         """
-        Search for markets by topic/keyword
-        Uses events endpoint (has political/news content) then fetches markets
+        Search for markets by topic/keyword - flexible matching
+        Searches both events and markets endpoints
         Returns top markets sorted by volume/interest
         """
         SPORTS_PREFIXES = (
@@ -150,9 +150,19 @@ class KalshiClient:
             'KXESPORT', 'INX', 'INXD'
         )
 
-        query_lower = query.lower()
+        # Split query into keywords for flexible matching
+        query_lower = query.lower().strip()
+        keywords = [k.strip() for k in query_lower.split() if len(k.strip()) >= 2]
+        if not keywords:
+            keywords = [query_lower]
+
         matching_markets = []
         seen_tickers = set()
+
+        def matches_query(text: str) -> bool:
+            """Check if text matches any keyword"""
+            text_lower = text.lower()
+            return any(kw in text_lower for kw in keywords)
 
         try:
             self._ensure_authenticated()
@@ -168,18 +178,19 @@ class KalshiClient:
                 event_ticker = event.get("event_ticker", "")
                 title = event.get("title", "")
                 subtitle = event.get("subtitle", "")
+                category = event.get("category", "")
 
                 # Skip sports
                 if any(event_ticker.startswith(p) for p in SPORTS_PREFIXES):
                     continue
 
-                # Check if query matches
-                searchable = f"{title} {subtitle}".lower()
-                if query_lower in searchable:
+                # Flexible match on title, subtitle, category
+                searchable = f"{title} {subtitle} {category}"
+                if matches_query(searchable):
                     matching_events.append(event)
 
             # Get markets for matching events
-            for event in matching_events[:8]:  # Limit API calls
+            for event in matching_events[:10]:
                 event_ticker = event.get("event_ticker")
                 try:
                     markets = self.get_markets_by_event(event_ticker)
@@ -189,12 +200,38 @@ class KalshiClient:
                             seen_tickers.add(ticker)
                             m["_event_title"] = event.get("title", "")
                             matching_markets.append(m)
-                    time.sleep(0.1)
+                    time.sleep(0.08)
                 except:
                     continue
 
-                if len(matching_markets) >= limit * 2:
+                if len(matching_markets) >= limit * 3:
                     break
+
+            # Also search markets directly for broader coverage
+            if len(matching_markets) < limit:
+                try:
+                    markets_data = self._make_request("GET", "/markets", params={
+                        "limit": 500,
+                        "status": "open"
+                    })
+                    for m in markets_data.get("markets", []):
+                        ticker = m.get("ticker", "")
+                        event_ticker = m.get("event_ticker", "")
+
+                        if ticker in seen_tickers:
+                            continue
+
+                        # Skip sports
+                        if any(ticker.startswith(p) or event_ticker.startswith(p) for p in SPORTS_PREFIXES):
+                            continue
+
+                        title = m.get("title", "")
+                        subtitle = m.get("subtitle", "")
+                        if matches_query(f"{title} {subtitle}"):
+                            seen_tickers.add(ticker)
+                            matching_markets.append(m)
+                except:
+                    pass
 
             # Sort by volume (highest first)
             matching_markets.sort(
@@ -202,7 +239,7 @@ class KalshiClient:
                 reverse=True
             )
 
-            logger.info(f"Search '{query}' found {len(matching_markets)} markets from {len(matching_events)} events")
+            logger.info(f"Search '{query}' found {len(matching_markets)} markets")
             return matching_markets[:limit]
 
         except KalshiAPIError as e:
