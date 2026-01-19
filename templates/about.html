@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}About - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="about-page">
+    <h1>About Prediction Pulse</h1>
+
+    <div class="about-content">
+        <p>Prediction Pulse automatically tracks trending prediction markets on <a href="https://kalshi.com" target="_blank">Kalshi</a> and generates conversational analysis articles about what's moving and why.</p>
+
+        <h2>How It Works</h2>
+        <p>Every hour, our system:</p>
+        <ol>
+            <li>Fetches the most active and interesting prediction markets from Kalshi</li>
+            <li>Analyzes the current odds, volume, and market movement</li>
+            <li>Generates a conversational breakdown of what's happening and what to watch</li>
+        </ol>
+
+        <h2>What Makes a Market "Trending"?</h2>
+        <p>We score markets based on:</p>
+        <ul>
+            <li><strong>Volume</strong> — More trading means more interest</li>
+            <li><strong>Uncertainty</strong> — Markets with odds between 20-80% are more interesting</li>
+            <li><strong>Recent movement</strong> — Price swings indicate developing stories</li>
+            <li><strong>Time to close</strong> — Markets about to resolve get priority</li>
+        </ul>
+
+        <h2>Disclaimer</h2>
+        <p>This site is for informational and entertainment purposes only. The articles generated here are <strong>not financial advice</strong>. Prediction markets carry risk, and you should always do your own research before participating.</p>
+
+        <p>The content is generated using AI and may contain errors or inaccuracies. Always verify information from primary sources.</p>
+
+        <h2>Tech Stack</h2>
+        <p>Built with Python, Flask, and love for prediction markets. Uses the Kalshi API for market data and Claude/OpenAI for article generation.</p>
+    </div>
+</div>
+{% endblock %}

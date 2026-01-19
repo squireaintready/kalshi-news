@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Prediction Pulse{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="logo">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">Prediction Pulse</span>
+            </a>
+            <nav class="main-nav">
+                <a href="{{ url_for('index') }}">Latest</a>
+                <a href="{{ url_for('about') }}">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>Prediction Pulse &copy; {{ now.year if now else 2024 }} — Articles generated from <a href="https://kalshi.com" target="_blank">Kalshi</a> prediction markets.</p>
+            <p class="disclaimer">This is not financial advice. Prediction markets carry risk. Do your own research.</p>
+        </div>
+    </footer>
+</body>
+</html>

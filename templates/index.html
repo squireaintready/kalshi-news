@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Pulse - Latest Market Analysis{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>What's Moving in Prediction Markets</h1>
+    <p class="hero-subtitle">Deep dives into the bets everyone's talking about. Updated constantly.</p>
+</div>
+
+{% if articles %}
+<div class="articles-grid">
+    {% for article in articles %}
+    {% set is_big_miss = article.status == 'resolved' and article.outcome and ((article.outcome == 'NO' and article.probability >= 65) or (article.outcome == 'YES' and article.probability <= 35)) %}
+    <article class="article-card {% if article.status == 'resolved' %}resolved{% endif %} {% if is_big_miss %}big-miss{% endif %}">
+        <a href="{{ url_for('article_page', article_id=article.id) }}" class="article-link">
+            <div class="article-meta">
+                {% if is_big_miss %}
+                <span class="miss-badge">MARKET MISSED</span>
+                {% endif %}
+                {% if article.article_type == 'results' %}
+                <span class="article-type-badge results">RESULTS</span>
+                {% if article.outcome %}
+                <span class="outcome-badge {{ article.outcome | lower }}">{{ article.outcome }}</span>
+                {% endif %}
+                {% else %}
+                <span class="article-type-badge analysis">ANALYSIS</span>
+                <span class="probability-badge {% if article.probability >= 70 %}high{% elif article.probability <= 30 %}low{% else %}mid{% endif %}">
+                    {{ article.probability }}% YES
+                </span>
+                {% endif %}
+                {% if article.status == 'resolved' and not is_big_miss %}
+                <span class="status-badge expired">EXPIRED</span>
+                {% endif %}
+            </div>
+            <span class="article-date">{{ article.generated_at | format_date }}</span>
+            <h2 class="article-title">{{ article.title }}</h2>
+            <p class="article-teaser">{{ article.teaser }}</p>
+            <div class="article-footer">
+                <span class="market-ticker">{{ article.market_ticker }}</span>
+                <span class="read-time">{{ article.word_count | estimate_read_time }} min read</span>
+            </div>
+        </a>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📰</div>
+    <h2>No Articles Yet</h2>
+    <p>Check back soon! We're generating fresh analysis of trending prediction markets.</p>
+    <a href="{{ url_for('refresh_articles') }}" class="btn btn-primary">Generate Articles Now</a>
+</div>
+{% endif %}
+
+<div class="page-actions">
+    <a href="{{ url_for('refresh_articles') }}" class="btn btn-secondary">
+        🔄 Refresh Articles
+    </a>
+</div>
+{% endblock %}

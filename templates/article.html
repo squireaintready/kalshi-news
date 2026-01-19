@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - Prediction Pulse{% endblock %}
+
+{% block content %}
+{% set is_big_miss = article.status == 'resolved' and article.outcome and ((article.outcome == 'NO' and article.probability >= 65) or (article.outcome == 'YES' and article.probability <= 35)) %}
+<article class="article-full {% if article.status == 'resolved' %}resolved{% endif %} {% if is_big_miss %}big-miss{% endif %}">
+    <header class="article-header">
+        <div class="article-meta-top">
+            <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Latest</a>
+            <div class="article-badges">
+                {% if is_big_miss %}
+                <span class="miss-badge">MARKET MISSED</span>
+                {% endif %}
+                {% if article.article_type == 'results' %}
+                <span class="article-type-badge results">RESULTS</span>
+                {% else %}
+                <span class="article-type-badge analysis">ANALYSIS</span>
+                {% endif %}
+                {% if article.status == 'resolved' and not is_big_miss %}
+                <span class="status-badge expired">MARKET EXPIRED</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <span class="article-date">{{ article.generated_at | format_date }}</span>
+
+        <h1 class="article-title">{{ article.title }}</h1>
+
+        <div class="market-info-box {% if article.article_type == 'results' %}results-box{% endif %}">
+            {% if article.article_type == 'results' %}
+            <div class="market-stat outcome-stat">
+                <span class="stat-label">Outcome</span>
+                <span class="stat-value outcome {{ article.outcome | lower }}">
+                    {{ article.outcome }}
+                </span>
+            </div>
+            <div class="market-stat">
+                <span class="stat-label">Final Odds</span>
+                <span class="stat-value">{{ article.probability }}%</span>
+            </div>
+            {% else %}
+            <div class="market-stat">
+                <span class="stat-label">{% if article.status == 'resolved' %}Final Odds{% else %}Current Odds{% endif %}</span>
+                <span class="stat-value probability {% if article.probability >= 70 %}high{% elif article.probability <= 30 %}low{% else %}mid{% endif %}">
+                    {{ article.probability }}% YES
+                </span>
+            </div>
+            {% endif %}
+            <div class="market-stat">
+                <span class="stat-label">Market</span>
+                <span class="stat-value">{{ article.market_ticker }}</span>
+            </div>
+            <div class="market-stat">
+                <span class="stat-label">Volume</span>
+                <span class="stat-value">{{ article.volume | format_number }} contracts</span>
+            </div>
+            {% if article.close_time %}
+            <div class="market-stat">
+                <span class="stat-label">{% if article.status == 'resolved' %}Closed{% else %}Closes{% endif %}</span>
+                <span class="stat-value">{{ article.close_time | format_close_time }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if article.status == 'resolved' and article.article_type != 'results' %}
+        <div class="expired-notice">
+            This market has expired. The analysis below was written when the market was still active.
+            {% if article.results_article_id %}
+            <a href="{{ url_for('article_page', article_id=article.results_article_id) }}">Read the results &rarr;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </header>
+
+    <div class="article-content">
+        {{ article.content | safe | nl2br }}
+    </div>
+
+    <footer class="article-footer-full">
+        {% if article.original_article_id %}
+        <div class="related-article-box">
+            <span>📊</span> <a href="{{ url_for('article_page', article_id=article.original_article_id) }}">Read the original analysis</a>
+        </div>
+        {% endif %}
+
+        <div class="disclaimer-box">
+            <strong>Disclaimer:</strong> This article is generated analysis of prediction market data and should not be considered financial advice. Always do your own research before participating in prediction markets.
+        </div>
+
+        <div class="share-section">
+            <span class="share-label">Share this:</span>
+            <div class="share-buttons">
+                <a href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url | urlencode }}" target="_blank" class="share-btn twitter">Twitter</a>
+                <button class="share-btn copy" onclick="copyToClipboard()">Copy Link</button>
+            </div>
+        </div>
+    </footer>
+</article>
+
+<script>
+function copyToClipboard() {
+    navigator.clipboard.writeText(window.location.href).then(function() {
+        alert('Link copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}
