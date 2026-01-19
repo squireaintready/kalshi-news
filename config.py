@@ -18,8 +18,15 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 # Flask Configuration
-FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "kalshi-news-secret-key-change-me")
+FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "")
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+
+# Validate secret key in production
+if not FLASK_SECRET_KEY:
+    if FLASK_DEBUG:
+        FLASK_SECRET_KEY = "dev-only-insecure-key-do-not-use-in-production"
+    else:
+        raise ValueError("FLASK_SECRET_KEY environment variable must be set in production!")
 
 # Cache/Database Configuration
 CACHE_TYPE = os.getenv("CACHE_TYPE", "file")  # "file", "redis", or "postgres"

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <h1>Admin Panel</h1>
+    </div>
+
+    <div class="admin-grid">
+        <section class="admin-card">
+            <h2>Quick Stats</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value">{{ stats.total_users }}</span>
+                    <span class="stat-label">Total Users</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ stats.total_articles }}</span>
+                    <span class="stat-label">Total Articles</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ stats.total_watchlist }}</span>
+                    <span class="stat-label">Watchlist Items</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <h2>Article Generation</h2>
+            <p>Manually trigger article generation from trending Kalshi markets.</p>
+            <form action="{{ url_for('refresh_articles') }}" method="GET" class="admin-form">
+                <button type="submit" class="btn btn-primary">Generate New Articles</button>
+            </form>
+            <p class="admin-note">Auto-refresh runs every 20 minutes.</p>
+        </section>
+
+        <section class="admin-card admin-card-wide">
+            <h2>Recent Users</h2>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Admin</th>
+                        <th>Created</th>
+                        <th>Last Login</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.email }}</td>
+                        <td>{% if user.is_admin %}<span class="badge badge-admin">Admin</span>{% else %}—{% endif %}</td>
+                        <td>{{ user.created_at|format_date if user.created_at else '—' }}</td>
+                        <td>{{ user.last_login|format_date if user.last_login else 'Never' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="admin-card admin-card-wide">
+            <h2>Recent Articles</h2>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Market</th>
+                        <th>Generated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in recent_articles %}
+                    <tr>
+                        <td><a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title[:50] }}{% if article.title|length > 50 %}...{% endif %}</a></td>
+                        <td>{{ article.market_ticker }}</td>
+                        <td>{{ article.generated_at|format_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+{% endblock %}

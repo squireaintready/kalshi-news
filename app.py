@@ -9,6 +9,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from markupsafe import Markup
 
 import config
@@ -40,6 +41,25 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
+
+# Security headers via Talisman
+csp = {
+    'default-src': "'self'",
+    'style-src': ["'self'", "'unsafe-inline'"],  # Allow inline styles
+    'script-src': ["'self'", "'unsafe-inline'"],  # Allow inline scripts for interactivity
+    'img-src': ["'self'", "data:"],
+    'font-src': ["'self'"],
+}
+Talisman(
+    app,
+    content_security_policy=csp,
+    content_security_policy_nonce_in=['script-src'],
+    force_https=not config.FLASK_DEBUG,  # Don't force HTTPS in debug mode
+    strict_transport_security=True,
+    strict_transport_security_max_age=31536000,  # 1 year
+    session_cookie_secure=not config.FLASK_DEBUG,
+    session_cookie_http_only=True,
+)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -389,6 +409,59 @@ def article_page(article_id):
 def about():
     """About page"""
     return render_template('about.html')
+
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_panel():
+    """Admin dashboard with stats and controls"""
+    cache = get_cache()
+    user_manager = get_user_manager()
+
+    # Get stats
+    stats = {
+        'total_users': 0,
+        'total_articles': len(cache.get_all_articles()),
+        'total_watchlist': 0
+    }
+
+    # Get users and watchlist counts from database
+    try:
+        conn = user_manager._get_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM users")
+            stats['total_users'] = cur.fetchone()[0]
+
+            cur.execute("SELECT COUNT(*) FROM user_bets")
+            bets_count = cur.fetchone()[0]
+
+            cur.execute("SELECT COUNT(*) FROM user_categories")
+            cats_count = cur.fetchone()[0]
+
+            stats['total_watchlist'] = bets_count + cats_count
+
+            # Get recent users
+            cur.execute("""
+                SELECT email, is_admin, created_at, last_login
+                FROM users ORDER BY created_at DESC LIMIT 10
+            """)
+            users = [
+                {'email': row[0], 'is_admin': row[1], 'created_at': row[2].isoformat() if row[2] else None, 'last_login': row[3].isoformat() if row[3] else None}
+                for row in cur.fetchall()
+            ]
+        conn.close()
+    except Exception as e:
+        logger.error(f"Admin stats error: {e}")
+        users = []
+
+    # Get recent articles
+    recent_articles = cache.get_all_articles()[:10]
+
+    return render_template('admin.html',
+                           stats=stats,
+                           users=users,
+                           recent_articles=recent_articles)
 
 
 @app.route('/refresh')

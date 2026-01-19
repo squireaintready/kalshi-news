@@ -2,11 +2,11 @@
 User authentication and management
 """
 import logging
-import hashlib
 import secrets
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from flask_login import UserMixin
+import bcrypt
 import config
 
 logger = logging.getLogger(__name__)
@@ -29,13 +29,18 @@ class User(UserMixin):
         return str(self.id)
 
     def check_password(self, password: str) -> bool:
-        """Verify password against hash"""
-        return self.password_hash == self._hash_password(password, self.id)
+        """Verify password against hash using bcrypt"""
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        except (ValueError, TypeError):
+            # Handle legacy SHA256 hashes - return False (user must reset password)
+            return False
 
     @staticmethod
-    def _hash_password(password: str, salt: str) -> str:
-        """Hash password with salt"""
-        return hashlib.sha256(f"{password}{salt}{config.FLASK_SECRET_KEY}".encode()).hexdigest()
+    def hash_password(password: str) -> str:
+        """Hash password using bcrypt"""
+        salt = bcrypt.gensalt(rounds=12)
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 
 class UserManager:
@@ -62,7 +67,7 @@ class UserManager:
                     CREATE TABLE IF NOT EXISTS users (
                         id VARCHAR(32) PRIMARY KEY,
                         email VARCHAR(255) UNIQUE NOT NULL,
-                        password_hash VARCHAR(64) NOT NULL,
+                        password_hash VARCHAR(72) NOT NULL,
                         is_admin BOOLEAN DEFAULT FALSE,
                         kalshi_email VARCHAR(255),
                         kalshi_connected BOOLEAN DEFAULT FALSE,
@@ -70,6 +75,13 @@ class UserManager:
                         last_login TIMESTAMP
                     )
                 """)
+                # Ensure password_hash column can hold bcrypt hashes
+                try:
+                    cur.execute("""
+                        ALTER TABLE users ALTER COLUMN password_hash TYPE VARCHAR(72)
+                    """)
+                except Exception:
+                    pass  # Column may already be correct type
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS user_bets (
                         id SERIAL PRIMARY KEY,
@@ -103,7 +115,7 @@ class UserManager:
         conn = self._get_connection()
         try:
             user_id = secrets.token_hex(16)
-            password_hash = User._hash_password(password, user_id)
+            password_hash = User.hash_password(password)
 
             with conn.cursor() as cur:
                 cur.execute("""
