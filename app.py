@@ -43,6 +43,7 @@ app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
 
 # Security headers via Talisman
+# Note: Railway handles SSL termination, so we don't force HTTPS at app level
 csp = {
     'default-src': "'self'",
     'style-src': ["'self'", "'unsafe-inline'"],  # Allow inline styles
@@ -54,7 +55,7 @@ Talisman(
     app,
     content_security_policy=csp,
     content_security_policy_nonce_in=['script-src'],
-    force_https=not config.FLASK_DEBUG,  # Don't force HTTPS in debug mode
+    force_https=False,  # Railway handles SSL termination at load balancer
     strict_transport_security=True,
     strict_transport_security_max_age=31536000,  # 1 year
     session_cookie_secure=not config.FLASK_DEBUG,
