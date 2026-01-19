@@ -90,8 +90,8 @@ class KalshiClient:
             }
             data = self._make_request("GET", "/events", params=params)
             return data.get("events", [])
-        except KalshiAPIError:
-            logger.warning("Failed to fetch events, returning empty list")
+        except KalshiAPIError as e:
+            logger.error(f"Failed to fetch events: {e}")
             return []
 
     def get_markets(self,
@@ -163,12 +163,17 @@ class KalshiClient:
 
         # First, get interesting events
         events = self.get_events(limit=50, status="open")
+        logger.info(f"Fetched {len(events)} total events from API")
+
         interesting_events = [
             e for e in events
             if not any(e.get("event_ticker", "").startswith(p) for p in SPORTS_PREFIXES)
         ]
 
         logger.info(f"Found {len(interesting_events)} non-sports events")
+
+        if interesting_events:
+            logger.info(f"First event: {interesting_events[0].get('event_ticker')} - {interesting_events[0].get('title', '')[:40]}")
 
         # Fetch markets from interesting events
         for event in interesting_events[:20]:  # Check top 20 events
