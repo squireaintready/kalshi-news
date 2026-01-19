@@ -141,6 +141,7 @@ class KalshiClient:
     def search_markets(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
         """
         Search for markets by topic/keyword
+        Uses events endpoint (has political/news content) then fetches markets
         Returns top markets sorted by volume/interest
         """
         SPORTS_PREFIXES = (
@@ -156,38 +157,52 @@ class KalshiClient:
         try:
             self._ensure_authenticated()
 
-            # Fetch markets
-            markets_data = self._make_request("GET", "/markets", params={
-                "limit": 1000,
+            # Search events first (has political/news content)
+            events_data = self._make_request("GET", "/events", params={
+                "limit": 200,
                 "status": "open"
             })
 
-            for market in markets_data.get("markets", []):
-                ticker = market.get("ticker", "")
-                title = market.get("title", "")
-                subtitle = market.get("subtitle", "")
-                event_ticker = market.get("event_ticker", "")
-
-                if ticker in seen_tickers:
-                    continue
+            matching_events = []
+            for event in events_data.get("events", []):
+                event_ticker = event.get("event_ticker", "")
+                title = event.get("title", "")
+                subtitle = event.get("subtitle", "")
 
                 # Skip sports
-                if any(ticker.startswith(p) or event_ticker.startswith(p) for p in SPORTS_PREFIXES):
+                if any(event_ticker.startswith(p) for p in SPORTS_PREFIXES):
                     continue
 
-                # Check if query matches title or subtitle
+                # Check if query matches
                 searchable = f"{title} {subtitle}".lower()
                 if query_lower in searchable:
-                    seen_tickers.add(ticker)
-                    matching_markets.append(market)
+                    matching_events.append(event)
 
-            # Sort by volume (highest first) - most popular markets for this topic
+            # Get markets for matching events
+            for event in matching_events[:8]:  # Limit API calls
+                event_ticker = event.get("event_ticker")
+                try:
+                    markets = self.get_markets_by_event(event_ticker)
+                    for m in markets:
+                        ticker = m.get("ticker", "")
+                        if ticker not in seen_tickers:
+                            seen_tickers.add(ticker)
+                            m["_event_title"] = event.get("title", "")
+                            matching_markets.append(m)
+                    time.sleep(0.1)
+                except:
+                    continue
+
+                if len(matching_markets) >= limit * 2:
+                    break
+
+            # Sort by volume (highest first)
             matching_markets.sort(
                 key=lambda m: (m.get("volume", 0) or 0) + (m.get("volume_24h", 0) or 0) * 10,
                 reverse=True
             )
 
-            logger.info(f"Search '{query}' found {len(matching_markets)} markets")
+            logger.info(f"Search '{query}' found {len(matching_markets)} markets from {len(matching_events)} events")
             return matching_markets[:limit]
 
         except KalshiAPIError as e:

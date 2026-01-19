@@ -12,9 +12,9 @@
     <div class="connect-banner">
         <div class="connect-banner-content">
             <h3>Start Your Watchlist</h3>
-            <p>Add market tickers to follow and get personalized articles about your interests.</p>
+            <p>Follow topics to get personalized articles about what matters to you.</p>
         </div>
-        <a href="{{ url_for('watchlist') }}" class="btn btn-primary">Add Markets</a>
+        <a href="{{ url_for('watchlist') }}" class="btn btn-primary">Add Topics</a>
     </div>
     {% endif %}
 
@@ -47,12 +47,12 @@
     {% if user_bets %}
     <section class="dashboard-section">
         <div class="section-header">
-            <h2>Your Watchlist</h2>
+            <h2>Your Topics</h2>
             <a href="{{ url_for('watchlist') }}" class="btn btn-secondary btn-small">Manage</a>
         </div>
         <div class="watchlist-preview">
             {% for bet in user_bets %}
-            <span class="ticker-tag">{{ bet.market_ticker }}</span>
+            <span class="topic-tag">{{ bet.title }}</span>
             {% endfor %}
         </div>
     </section>

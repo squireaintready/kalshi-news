@@ -5,32 +5,17 @@
 <div class="watchlist-page">
     <div class="page-header">
         <h1>My Watchlist</h1>
-        <p>Search for markets to follow and get personalized articles.</p>
+        <p>Search topics to follow and get personalized articles.</p>
     </div>
 
     <div class="watchlist-grid">
         <section class="add-ticker-section">
-            <h2>Find Markets</h2>
+            <h2>Find Topics</h2>
             <div class="search-container">
-                <input type="text" id="market-search" placeholder="Search markets (e.g., Trump, Bitcoin, Fed...)"
+                <input type="text" id="market-search" placeholder="Search topics (e.g., Trump, Bitcoin, Fed, inflation...)"
                        class="search-input" autocomplete="off">
                 <div id="search-results" class="search-results"></div>
             </div>
-
-            {% if available_tickers %}
-            <div class="quick-add">
-                <h3>From Recent Articles</h3>
-                <div class="ticker-chips">
-                    {% for ticker in available_tickers[:10] %}
-                    <form method="POST" class="chip-form">
-                        <input type="hidden" name="action" value="add">
-                        <input type="hidden" name="ticker" value="{{ ticker }}">
-                        <button type="submit" class="ticker-chip">{{ ticker }}</button>
-                    </form>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
         </section>
 
         <section class="current-watchlist">
@@ -100,7 +85,7 @@ searchInput.addEventListener('input', function() {
                         </div>
                     `).join('');
                 } else {
-                    searchResults.innerHTML = '<div class="no-results">No markets found. Try different keywords.</div>';
+                    searchResults.innerHTML = '<div class="no-results">No topics found. Try different keywords.</div>';
                 }
             })
             .catch(err => {
