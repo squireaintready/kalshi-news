@@ -137,6 +137,16 @@ class KalshiClient:
         except KalshiAPIError:
             return []
 
+    def get_markets_by_event(self, event_ticker: str) -> List[Dict[str, Any]]:
+        """Fetch markets for a specific event"""
+        try:
+            self._ensure_authenticated()
+            params = {"event_ticker": event_ticker, "limit": 50}
+            data = self._make_request("GET", "/markets", params=params)
+            return data.get("markets", [])
+        except KalshiAPIError:
+            return []
+
     def get_trending_markets(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get trending/active markets based on volume and recent activity
@@ -146,50 +156,57 @@ class KalshiClient:
         SPORTS_PREFIXES = (
             'KXNBA', 'KXNFL', 'KXMLB', 'KXNHL', 'KXMLS', 'KXCFB', 'KXCBB',
             'KXMV', 'KXSOC', 'KXTEN', 'KXGOLF', 'KXUFC', 'KXBOX', 'KXNASCAR',
-            'KXESPORT', 'INX', 'INXD'  # Also filter index/derivatives
+            'KXESPORT', 'INX', 'INXD'
         )
 
         all_markets = []
-        cursor = None
 
-        # Fetch multiple pages to find non-sports markets
-        for _ in range(3):  # Up to 3 pages
-            markets_data = self.get_markets(limit=100, status="open", cursor=cursor)
-            markets = markets_data.get("markets", [])
-            cursor = markets_data.get("cursor")
+        # First, get interesting events
+        events = self.get_events(limit=50, status="open")
+        interesting_events = [
+            e for e in events
+            if not any(e.get("event_ticker", "").startswith(p) for p in SPORTS_PREFIXES)
+        ]
 
-            # Filter out sports markets
-            for market in markets:
+        logger.info(f"Found {len(interesting_events)} non-sports events")
+
+        # Fetch markets from interesting events
+        for event in interesting_events[:20]:  # Check top 20 events
+            event_ticker = event.get("event_ticker")
+            if event_ticker:
+                markets = self.get_markets_by_event(event_ticker)
+                for m in markets:
+                    m["_event_title"] = event.get("title", "")
+                all_markets.extend(markets)
+
+            if len(all_markets) >= 50:
+                break
+
+        # Also try general markets endpoint as backup
+        if len(all_markets) < 20:
+            markets_data = self.get_markets(limit=100, status="open")
+            for market in markets_data.get("markets", []):
                 ticker = market.get("ticker", "")
                 event_ticker = market.get("event_ticker", "")
-
-                # Skip sports markets
-                if any(ticker.startswith(prefix) or event_ticker.startswith(prefix)
-                       for prefix in SPORTS_PREFIXES):
-                    continue
-
-                all_markets.append(market)
-
-            if not cursor or len(all_markets) >= 50:
-                break
+                if not any(ticker.startswith(p) or event_ticker.startswith(p)
+                           for p in SPORTS_PREFIXES):
+                    all_markets.append(market)
 
         if not all_markets:
             logger.warning("No non-sports markets found")
             return []
 
-        # Score markets by "interestingness" for article generation
+        # Score markets by "interestingness"
         scored_markets = []
         for market in all_markets:
             score = self._calculate_market_score(market)
-            # Lower threshold for non-sports markets
-            if score >= 0:
-                market["_interest_score"] = score
-                scored_markets.append(market)
+            market["_interest_score"] = max(score, 1)  # Minimum score of 1 for non-sports
+            scored_markets.append(market)
 
         # Sort by interest score and return top N
         scored_markets.sort(key=lambda m: m.get("_interest_score", 0), reverse=True)
 
-        logger.info(f"Found {len(scored_markets)} non-sports markets")
+        logger.info(f"Found {len(scored_markets)} non-sports markets, returning top {limit}")
         return scored_markets[:limit]
 
     def _calculate_market_score(self, market: Dict[str, Any]) -> float:
