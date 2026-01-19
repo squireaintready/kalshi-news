@@ -85,7 +85,8 @@
         function updateThemeIcon(theme) {
             const icon = document.querySelector('.theme-icon');
             if (icon) {
-                icon.textContent = theme === 'light' ? '🌙' : '☀️';
+                // Show sun when dark (to switch to light), moon when light (to switch to dark)
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
             }
         }
 
