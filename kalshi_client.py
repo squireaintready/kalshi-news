@@ -149,60 +149,87 @@ class KalshiClient:
             'KXESPORT', 'INX', 'INXD'
         )
 
+        query_lower = query.lower()
+        matching_markets = []
+        seen_tickers = set()
+
         try:
             self._ensure_authenticated()
-            # First try searching events
-            events_data = self._make_request("GET", "/events", params={
-                "limit": 50,
-                "status": "open"
-            })
-            events = events_data.get("events", [])
 
-            # Filter events by search query
-            query_lower = query.lower()
-            matching_markets = []
-
-            for event in events:
-                event_ticker = event.get("event_ticker", "")
-                title = event.get("title", "")
-
-                # Skip sports
-                if any(event_ticker.startswith(p) for p in SPORTS_PREFIXES):
-                    continue
-
-                # Check if query matches event title
-                if query_lower in title.lower():
-                    # Get markets for this event
-                    markets = self.get_markets_by_event(event_ticker)
-                    for m in markets:
-                        m["_event_title"] = title
-                        matching_markets.append(m)
-
-                    if len(matching_markets) >= limit:
-                        break
-
-                    time.sleep(0.2)  # Rate limiting
-
-            # Also search general markets endpoint
-            if len(matching_markets) < limit:
-                markets_data = self._make_request("GET", "/markets", params={
-                    "limit": 100,
+            # First, fetch markets directly and filter by title
+            # Fetch multiple pages to get more results
+            for cursor in [None]:  # Can add pagination if needed
+                params = {
+                    "limit": 200,
                     "status": "open"
-                })
+                }
+                if cursor:
+                    params["cursor"] = cursor
+
+                markets_data = self._make_request("GET", "/markets", params=params)
+
                 for market in markets_data.get("markets", []):
                     ticker = market.get("ticker", "")
                     title = market.get("title", "")
+                    subtitle = market.get("subtitle", "")
                     event_ticker = market.get("event_ticker", "")
+
+                    # Skip if already seen
+                    if ticker in seen_tickers:
+                        continue
 
                     # Skip sports
                     if any(ticker.startswith(p) or event_ticker.startswith(p) for p in SPORTS_PREFIXES):
                         continue
 
-                    # Check if query matches
-                    if query_lower in title.lower() or query_lower in ticker.lower():
-                        if market not in matching_markets:
-                            matching_markets.append(market)
+                    # Check if query matches title, subtitle, or ticker
+                    searchable = f"{title} {subtitle} {ticker}".lower()
+                    if query_lower in searchable:
+                        seen_tickers.add(ticker)
+                        matching_markets.append(market)
 
+                        if len(matching_markets) >= limit:
+                            break
+
+                if len(matching_markets) >= limit:
+                    break
+
+            # Also search events if we need more results
+            if len(matching_markets) < limit:
+                events_data = self._make_request("GET", "/events", params={
+                    "limit": 100,
+                    "status": "open"
+                })
+
+                for event in events_data.get("events", []):
+                    event_ticker = event.get("event_ticker", "")
+                    title = event.get("title", "")
+                    subtitle = event.get("subtitle", "")
+
+                    # Skip sports
+                    if any(event_ticker.startswith(p) for p in SPORTS_PREFIXES):
+                        continue
+
+                    # Check if query matches event
+                    searchable = f"{title} {subtitle}".lower()
+                    if query_lower in searchable:
+                        # Get markets for this event
+                        try:
+                            markets = self.get_markets_by_event(event_ticker)
+                            for m in markets:
+                                ticker = m.get("ticker", "")
+                                if ticker not in seen_tickers:
+                                    seen_tickers.add(ticker)
+                                    m["_event_title"] = title
+                                    matching_markets.append(m)
+                            time.sleep(0.15)  # Rate limiting
+                        except KalshiAPIError:
+                            continue
+
+                        if len(matching_markets) >= limit:
+                            break
+
+            logger.info(f"Search '{query}' found {len(matching_markets)} markets")
             return matching_markets[:limit]
 
         except KalshiAPIError as e:
