@@ -140,7 +140,8 @@ class KalshiClient:
 
     def search_markets(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
         """
-        Search for markets by keyword - optimized for speed
+        Search for markets by topic/keyword
+        Returns top markets sorted by volume/interest
         """
         SPORTS_PREFIXES = (
             'KXNBA', 'KXNFL', 'KXMLB', 'KXNHL', 'KXMLS', 'KXCFB', 'KXCBB',
@@ -155,9 +156,9 @@ class KalshiClient:
         try:
             self._ensure_authenticated()
 
-            # Single API call - fetch markets and filter client-side
+            # Fetch markets
             markets_data = self._make_request("GET", "/markets", params={
-                "limit": 500,
+                "limit": 1000,
                 "status": "open"
             })
 
@@ -174,19 +175,26 @@ class KalshiClient:
                 if any(ticker.startswith(p) or event_ticker.startswith(p) for p in SPORTS_PREFIXES):
                     continue
 
-                # Check if query matches
+                # Check if query matches title or subtitle
                 searchable = f"{title} {subtitle}".lower()
                 if query_lower in searchable:
                     seen_tickers.add(ticker)
                     matching_markets.append(market)
 
-                    if len(matching_markets) >= limit:
-                        break
+            # Sort by volume (highest first) - most popular markets for this topic
+            matching_markets.sort(
+                key=lambda m: (m.get("volume", 0) or 0) + (m.get("volume_24h", 0) or 0) * 10,
+                reverse=True
+            )
 
-            return matching_markets
+            logger.info(f"Search '{query}' found {len(matching_markets)} markets")
+            return matching_markets[:limit]
 
         except KalshiAPIError as e:
             logger.error(f"Failed to search markets: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Search error: {e}")
             return []
 
     def get_markets_by_event(self, event_ticker: str) -> List[Dict[str, Any]]:
