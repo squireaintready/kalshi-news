@@ -215,16 +215,20 @@ class UserManager:
         finally:
             conn.close()
 
-    def add_user_ticker(self, user_id: str, ticker: str) -> bool:
+    def add_user_ticker(self, user_id: str, ticker: str, title: str = None) -> bool:
         """Add a ticker to user's watchlist"""
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
+                # Add title column if it doesn't exist
                 cur.execute("""
-                    INSERT INTO user_bets (user_id, market_ticker, position)
-                    VALUES (%s, %s, 'WATCHING')
-                    ON CONFLICT (user_id, market_ticker) DO NOTHING
-                """, (user_id, ticker.upper().strip()))
+                    ALTER TABLE user_bets ADD COLUMN IF NOT EXISTS title TEXT
+                """)
+                cur.execute("""
+                    INSERT INTO user_bets (user_id, market_ticker, position, title)
+                    VALUES (%s, %s, 'WATCHING', %s)
+                    ON CONFLICT (user_id, market_ticker) DO UPDATE SET title = EXCLUDED.title
+                """, (user_id, ticker.upper().strip(), title))
                 conn.commit()
                 return True
         except Exception as e:
@@ -285,7 +289,8 @@ class UserManager:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT market_ticker, position, quantity, average_price, synced_at
+                    SELECT market_ticker, position, quantity, average_price, synced_at,
+                           COALESCE(title, market_ticker) as title
                     FROM user_bets WHERE user_id = %s
                     ORDER BY synced_at DESC
                 """, (user_id,))
@@ -296,7 +301,8 @@ class UserManager:
                         "position": row[1],
                         "quantity": row[2],
                         "average_price": row[3],
-                        "synced_at": row[4].isoformat() if row[4] else None
+                        "synced_at": row[4].isoformat() if row[4] else None,
+                        "title": row[5]
                     }
                     for row in rows
                 ]

@@ -94,6 +94,7 @@ searchInput.addEventListener('input', function() {
                             <form method="POST" class="add-form">
                                 <input type="hidden" name="action" value="add">
                                 <input type="hidden" name="ticker" value="${m.ticker}">
+                                <input type="hidden" name="title" value="${escapeHtml(m.title)}">
                                 <button type="submit" class="add-btn">+ Add</button>
                             </form>
                         </div>

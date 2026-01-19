@@ -251,7 +251,7 @@ def dashboard():
 
 @app.route('/watchlist', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("30 per hour")
+@limiter.limit("60 per hour")
 def watchlist():
     """Manage user's market watchlist"""
     user_manager = get_user_manager()
@@ -260,61 +260,55 @@ def watchlist():
     if request.method == 'POST':
         action = request.form.get('action')
         ticker = request.form.get('ticker', '').strip().upper()
+        title = request.form.get('title', '')
 
         if action == 'add' and ticker:
-            # Verify ticker exists on Kalshi
-            from kalshi_client import get_client
-            client = get_client()
-            market = client.get_market(ticker)
+            # Add immediately - no validation delay
+            user_manager.add_user_ticker(current_user.id, ticker, title)
+            flash(f'Added to watchlist!', 'success')
 
-            if market:
-                user_manager.add_user_ticker(current_user.id, ticker)
-                flash(f'Added {ticker} to your watchlist!', 'success')
-
-                # Generate article if it doesn't exist
-                existing_tickers = {a.get('market_ticker') for a in cache.get_all_articles()}
-                if ticker not in existing_tickers:
-                    _generate_article_for_ticker(ticker)
-            else:
-                flash(f'Market ticker "{ticker}" not found on Kalshi.', 'error')
+            # Queue background article generation
+            _queue_article_generation(ticker)
 
         elif action == 'remove' and ticker:
             user_manager.remove_user_ticker(current_user.id, ticker)
-            flash(f'Removed {ticker} from your watchlist.', 'success')
+            flash(f'Removed from watchlist.', 'success')
 
         return redirect(url_for('watchlist'))
 
-    # Get user's current watchlist
+    # Get user's current watchlist - use cached titles only (fast)
     user_bets = user_manager.get_user_bets(current_user.id)
-
-    # Enrich with market titles from cache or API
     all_articles = cache.get_all_articles()
     ticker_to_title = {a.get('market_ticker'): a.get('market_title') for a in all_articles}
 
-    from kalshi_client import get_client
-    client = get_client()
-
     for bet in user_bets:
         ticker = bet.get('market_ticker')
-        if ticker in ticker_to_title:
-            bet['title'] = ticker_to_title[ticker]
-        else:
-            # Try to fetch from API
-            try:
-                market = client.get_market(ticker)
-                if market:
-                    bet['title'] = market.get('title', ticker)
-                else:
-                    bet['title'] = ticker
-            except:
-                bet['title'] = ticker
+        # Use stored title, cached title, or ticker as fallback
+        bet['title'] = bet.get('title') or ticker_to_title.get(ticker) or ticker
 
-    # Get available tickers from articles for quick add
-    available_tickers = list({a.get('market_ticker') for a in all_articles if a.get('market_ticker')})
+    # Quick add options from existing articles
+    available_tickers = list({a.get('market_ticker') for a in all_articles if a.get('market_ticker')})[:10]
 
     return render_template('watchlist.html',
                            user_bets=user_bets,
                            available_tickers=available_tickers)
+
+
+def _queue_article_generation(ticker: str):
+    """Queue article generation in background thread"""
+    import threading
+
+    def generate():
+        try:
+            cache = get_cache()
+            existing_tickers = {a.get('market_ticker') for a in cache.get_all_articles()}
+            if ticker not in existing_tickers:
+                _generate_article_for_ticker(ticker)
+        except Exception as e:
+            logger.error(f"Background article generation failed for {ticker}: {e}")
+
+    thread = threading.Thread(target=generate, daemon=True)
+    thread.start()
 
 
 def _generate_article_for_ticker(ticker: str):
@@ -417,27 +411,23 @@ def api_article(article_id):
 
 @app.route('/api/search-markets')
 @login_required
-@limiter.limit("30 per hour")
+@limiter.limit("60 per hour")
 def api_search_markets():
     """API: Search Kalshi markets by keyword"""
     query = request.args.get('q', '').strip()
     if not query or len(query) < 2:
-        return jsonify({"markets": [], "error": "Query too short"})
+        return jsonify({"markets": []})
 
     from kalshi_client import get_client
     client = get_client()
-    markets = client.search_markets(query, limit=15)
+    markets = client.search_markets(query, limit=12)
 
-    # Simplify response
-    results = []
-    for m in markets:
-        results.append({
-            "ticker": m.get("ticker"),
-            "title": m.get("title"),
-            "event_title": m.get("_event_title", ""),
-            "probability": m.get("yes_bid") or m.get("last_price", 50),
-            "volume": m.get("volume", 0)
-        })
+    # Minimal response for speed
+    results = [{
+        "ticker": m.get("ticker"),
+        "title": m.get("title"),
+        "probability": m.get("yes_bid") or m.get("last_price", 50)
+    } for m in markets]
 
     return jsonify({"markets": results})
 
