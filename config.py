@@ -11,10 +11,11 @@ KALSHI_API_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 KALSHI_EMAIL = os.getenv("KALSHI_EMAIL", "")
 KALSHI_PASSWORD = os.getenv("KALSHI_PASSWORD", "")
 
-# LLM Configuration (supports both OpenAI and Anthropic)
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")  # "openai" or "anthropic"
+# LLM Configuration (supports OpenAI, Anthropic, and Groq)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")  # "openai", "anthropic", or "groq"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 # Flask Configuration
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "kalshi-news-secret-key-change-me")

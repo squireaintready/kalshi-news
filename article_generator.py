@@ -133,6 +133,13 @@ class ArticleGenerator:
                 logger.info("Initialized OpenAI client")
             except ImportError:
                 raise ImportError("openai package not installed. Run: pip install openai")
+        elif self.provider == "groq":
+            try:
+                from groq import Groq
+                self.client = Groq(api_key=config.GROQ_API_KEY)
+                logger.info("Initialized Groq client")
+            except ImportError:
+                raise ImportError("groq package not installed. Run: pip install groq")
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
@@ -161,12 +168,27 @@ class ArticleGenerator:
         )
         return response.choices[0].message.content
 
+    def _call_groq(self, system_prompt: str, user_prompt: str) -> str:
+        """Make API call to Groq (uses Llama 3)"""
+        response = self.client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=2000,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        return response.choices[0].message.content
+
     def _call_llm(self, system_prompt: str, user_prompt: str) -> str:
         """Route to appropriate LLM provider"""
         if self.provider == "anthropic":
             return self._call_anthropic(system_prompt, user_prompt)
         elif self.provider == "openai":
             return self._call_openai(system_prompt, user_prompt)
+        elif self.provider == "groq":
+            return self._call_groq(system_prompt, user_prompt)
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
 
