@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Connect Kalshi - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Connect Kalshi Account</h1>
+        <p class="auth-subtitle">Link your Kalshi account to sync your positions and get personalized articles.</p>
+
+        <div class="info-box">
+            <strong>How it works:</strong>
+            <ul>
+                <li>We securely connect to Kalshi to fetch your open positions</li>
+                <li>Articles are generated for markets you're invested in</li>
+                <li>Your credentials are never stored</li>
+            </ul>
+        </div>
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="kalshi_email">Kalshi Email</label>
+                <input type="email" id="kalshi_email" name="kalshi_email" required
+                       placeholder="your@kalshi-email.com" autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="kalshi_password">Kalshi Password</label>
+                <input type="password" id="kalshi_password" name="kalshi_password" required
+                       placeholder="Your Kalshi password" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Connect & Sync Positions</button>
+        </form>
+
+        <p class="auth-footer">
+            <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

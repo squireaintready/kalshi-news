@@ -4,12 +4,31 @@ Main Flask application
 """
 import logging
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, flash, request
+from functools import wraps
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from markupsafe import Markup
 
 import config
 from cache import get_cache
 from scheduler import init_scheduler, manual_refresh
+from auth import get_user_manager, User
+
+# Initialize Sentry for error monitoring (optional)
+if config.SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(
+            dsn=config.SENTRY_DSN,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=0.1,
+            send_default_pii=False
+        )
+    except ImportError:
+        pass
 
 # Configure logging
 logging.basicConfig(
@@ -21,6 +40,38 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'warning'
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login"""
+    return get_user_manager().get_user_by_id(user_id)
+
+
+def admin_required(f):
+    """Decorator for admin-only routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Admin access required.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # Template filters
@@ -83,12 +134,218 @@ def nl2br_filter(text):
 
 # Context processor for templates
 @app.context_processor
-def inject_now():
-    """Make current datetime available in all templates"""
-    return {'now': datetime.utcnow()}
+def inject_globals():
+    """Make common variables available in all templates"""
+    return {
+        'now': datetime.utcnow(),
+        'current_user': current_user
+    }
 
 
-# Routes
+# Auth Routes
+@app.route('/signup', methods=['GET', 'POST'])
+@limiter.limit("10 per hour")
+def signup():
+    """User registration"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Validation
+        if not email or not password:
+            flash('Email and password are required.', 'error')
+            return render_template('signup.html')
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters.', 'error')
+            return render_template('signup.html')
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('signup.html')
+
+        # Check if user exists
+        user_manager = get_user_manager()
+        existing_user = user_manager.get_user_by_email(email)
+        if existing_user:
+            flash('An account with this email already exists.', 'error')
+            return render_template('signup.html')
+
+        # Create user
+        user = user_manager.create_user(email, password)
+        if user:
+            login_user(user)
+            user_manager.update_last_login(user.id)
+            flash('Account created successfully!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Failed to create account. Please try again.', 'error')
+
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("20 per hour")
+def login():
+    """User login"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        user_manager = get_user_manager()
+        user = user_manager.get_user_by_email(email)
+
+        if user and user.check_password(password):
+            login_user(user, remember=True)
+            user_manager.update_last_login(user.id)
+            flash('Logged in successfully!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('dashboard'))
+        else:
+            flash('Invalid email or password.', 'error')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """User logout"""
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """User dashboard with personalized articles"""
+    cache = get_cache()
+    user_manager = get_user_manager()
+
+    # Get user's bets
+    user_bets = user_manager.get_user_bets(current_user.id)
+    bet_tickers = [bet['market_ticker'] for bet in user_bets]
+
+    # Get all articles
+    all_articles = cache.get_all_articles()
+
+    # Filter articles related to user's bets
+    my_articles = [
+        a for a in all_articles
+        if a.get('market_ticker') in bet_tickers
+    ]
+
+    return render_template('dashboard.html',
+                           user_bets=user_bets,
+                           my_articles=my_articles,
+                           all_articles=all_articles[:10])
+
+
+@app.route('/connect-kalshi', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("5 per hour")
+def connect_kalshi():
+    """Connect Kalshi account to sync bets"""
+    if request.method == 'POST':
+        kalshi_email = request.form.get('kalshi_email', '').strip()
+        kalshi_password = request.form.get('kalshi_password', '')
+
+        if not kalshi_email or not kalshi_password:
+            flash('Please provide your Kalshi credentials.', 'error')
+            return render_template('connect_kalshi.html')
+
+        # Try to authenticate with Kalshi and fetch positions
+        from kalshi_client import KalshiClient
+        client = KalshiClient()
+
+        try:
+            # Temporarily set credentials
+            import config as cfg
+            original_email = cfg.KALSHI_EMAIL
+            original_password = cfg.KALSHI_PASSWORD
+            cfg.KALSHI_EMAIL = kalshi_email
+            cfg.KALSHI_PASSWORD = kalshi_password
+
+            # Try to login
+            client._login()
+
+            # Fetch user's positions
+            positions = client._make_request("GET", "/portfolio/positions")
+            market_positions = positions.get("market_positions", [])
+
+            # Save to database
+            user_manager = get_user_manager()
+            user_manager.connect_kalshi(current_user.id, kalshi_email)
+
+            bets = []
+            for pos in market_positions:
+                bets.append({
+                    "market_ticker": pos.get("ticker"),
+                    "position": "YES" if pos.get("position", 0) > 0 else "NO",
+                    "quantity": abs(pos.get("position", 0)),
+                    "average_price": pos.get("average_price")
+                })
+
+            if bets:
+                user_manager.save_user_bets(current_user.id, bets)
+                flash(f'Successfully synced {len(bets)} positions from Kalshi!', 'success')
+
+                # Generate articles for bets that don't have coverage
+                _generate_articles_for_bets(bets)
+            else:
+                flash('Connected to Kalshi, but no open positions found.', 'warning')
+
+            # Restore original credentials
+            cfg.KALSHI_EMAIL = original_email
+            cfg.KALSHI_PASSWORD = original_password
+
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            logger.error(f"Failed to connect Kalshi: {e}")
+            flash('Failed to connect to Kalshi. Please check your credentials.', 'error')
+            # Restore original credentials
+            cfg.KALSHI_EMAIL = original_email
+            cfg.KALSHI_PASSWORD = original_password
+
+    return render_template('connect_kalshi.html')
+
+
+def _generate_articles_for_bets(bets):
+    """Generate articles for user's bets if they don't exist"""
+    cache = get_cache()
+    existing_tickers = {a.get('market_ticker') for a in cache.get_all_articles()}
+
+    from kalshi_client import get_client
+    from article_generator import get_generator
+
+    client = get_client()
+    generator = get_generator()
+
+    for bet in bets:
+        ticker = bet.get('market_ticker')
+        if ticker and ticker not in existing_tickers:
+            try:
+                market = client.get_market(ticker)
+                if market:
+                    enriched = client.enrich_market_data(market)
+                    article = generator.generate_article(enriched)
+                    if article:
+                        cache.add_article(article)
+                        logger.info(f"Generated article for user bet: {ticker}")
+            except Exception as e:
+                logger.error(f"Failed to generate article for {ticker}: {e}")
+
+
+# Main Routes
 @app.route('/')
 def index():
     """Homepage showing latest articles"""
@@ -117,8 +374,11 @@ def about():
 
 
 @app.route('/refresh')
+@login_required
+@admin_required
+@limiter.limit("5 per hour")
 def refresh_articles():
-    """Manually trigger article generation"""
+    """Manually trigger article generation (admin only)"""
     try:
         count = manual_refresh()
         if count > 0:
@@ -133,23 +393,51 @@ def refresh_articles():
 
 
 @app.route('/health')
+@limiter.exempt
 def health():
     """Health check endpoint"""
     return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}
+
+
+# API endpoints for future mobile app
+@app.route('/api/articles')
+@limiter.limit("100 per hour")
+def api_articles():
+    """API: Get all articles"""
+    cache = get_cache()
+    articles = cache.get_all_articles()
+    return jsonify({"articles": articles})
+
+
+@app.route('/api/articles/<article_id>')
+@limiter.limit("100 per hour")
+def api_article(article_id):
+    """API: Get single article"""
+    cache = get_cache()
+    article = cache.get_article_by_id(article_id)
+    if article:
+        return jsonify({"article": article})
+    return jsonify({"error": "Article not found"}), 404
 
 
 # Error handlers
 @app.errorhandler(404)
 def not_found(e):
     """404 error handler"""
-    return render_template('base.html'), 404
+    return render_template('404.html'), 404
 
 
 @app.errorhandler(500)
 def server_error(e):
     """500 error handler"""
     logger.error(f"Server error: {e}")
-    return render_template('base.html'), 500
+    return render_template('500.html'), 500
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Rate limit exceeded handler"""
+    return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
 
 
 # Application startup

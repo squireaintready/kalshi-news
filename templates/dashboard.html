@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Your Dashboard</h1>
+        <p>Welcome back, {{ current_user.email }}</p>
+    </div>
+
+    {% if not current_user.kalshi_connected %}
+    <div class="connect-banner">
+        <div class="connect-banner-content">
+            <h3>Connect Your Kalshi Account</h3>
+            <p>Link your Kalshi account to get personalized articles about your positions.</p>
+        </div>
+        <a href="{{ url_for('connect_kalshi') }}" class="btn btn-primary">Connect Kalshi</a>
+    </div>
+    {% endif %}
+
+    {% if my_articles %}
+    <section class="dashboard-section">
+        <h2>Articles About Your Bets</h2>
+        <div class="articles-grid">
+            {% for article in my_articles %}
+            <article class="article-card">
+                <div class="article-meta">
+                    {% if article.article_type == 'results' %}
+                    <span class="badge badge-results">RESULTS</span>
+                    {% else %}
+                    <span class="badge badge-analysis">ANALYSIS</span>
+                    {% endif %}
+                    <span class="article-date">{{ article.generated_at|format_date }}</span>
+                </div>
+                <h3><a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title }}</a></h3>
+                <p class="article-teaser">{{ article.teaser }}</p>
+                <div class="article-stats">
+                    <span class="probability">{{ article.probability }}% odds</span>
+                    <span class="read-time">{{ article.word_count|estimate_read_time }} min read</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if user_bets %}
+    <section class="dashboard-section">
+        <h2>Your Positions</h2>
+        <div class="bets-table-wrapper">
+            <table class="bets-table">
+                <thead>
+                    <tr>
+                        <th>Market</th>
+                        <th>Position</th>
+                        <th>Quantity</th>
+                        <th>Avg Price</th>
+                        <th>Last Synced</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bet in user_bets %}
+                    <tr>
+                        <td class="market-ticker">{{ bet.market_ticker }}</td>
+                        <td>
+                            <span class="position-badge position-{{ bet.position|lower }}">
+                                {{ bet.position }}
+                            </span>
+                        </td>
+                        <td>{{ bet.quantity }}</td>
+                        <td>{{ bet.average_price }}¢</td>
+                        <td>{{ bet.synced_at|format_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="sync-actions">
+            <a href="{{ url_for('connect_kalshi') }}" class="btn btn-secondary">Sync Positions</a>
+        </div>
+    </section>
+    {% elif current_user.kalshi_connected %}
+    <section class="dashboard-section">
+        <div class="empty-state">
+            <h3>No Positions Found</h3>
+            <p>You don't have any open positions on Kalshi, or they haven't been synced yet.</p>
+            <a href="{{ url_for('connect_kalshi') }}" class="btn btn-secondary">Sync Again</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="dashboard-section">
+        <h2>Latest Articles</h2>
+        <div class="articles-grid">
+            {% for article in all_articles %}
+            <article class="article-card article-card-small">
+                <div class="article-meta">
+                    <span class="article-date">{{ article.generated_at|format_date }}</span>
+                </div>
+                <h3><a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title }}</a></h3>
+                <div class="article-stats">
+                    <span class="probability">{{ article.probability }}%</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        <div class="view-all">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">View All Articles</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

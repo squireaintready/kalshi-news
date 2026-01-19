@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Login - Prediction Pulse{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Welcome Back</h1>
+        <p class="auth-subtitle">Log in to access your personalized market insights</p>
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required
+                       placeholder="you@example.com" autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="Your password" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Log In</button>
+        </form>
+
+        <p class="auth-footer">
+            Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

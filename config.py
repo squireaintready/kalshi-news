@@ -38,3 +38,6 @@ MAX_RESULTS_ARTICLES_TO_GENERATE = int(os.getenv("MAX_RESULTS_ARTICLES", "2"))
 # Article Generation Settings
 MIN_ARTICLE_LENGTH = 400
 MAX_ARTICLE_LENGTH = 650
+
+# Error Monitoring
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")

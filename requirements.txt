@@ -1,7 +1,11 @@
 # Core dependencies
 flask>=3.0.0
+flask-login>=0.6.0
+flask-limiter>=3.5.0
+werkzeug>=3.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
+email-validator>=2.0.0
 
 # LLM Providers
 anthropic>=0.18.0
@@ -19,3 +23,6 @@ psycopg2-binary>=2.9.0
 
 # Production server (optional)
 gunicorn>=21.0.0
+
+# Error monitoring (optional)
+sentry-sdk[flask]>=1.0.0
