@@ -164,90 +164,68 @@ a, button, input, select, textarea {
     text-align: center;
     margin-bottom: 3rem;
     padding: 2.5rem 1rem;
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
-    border-radius: 16px;
-    border: 1px solid var(--color-border);
     position: relative;
-    overflow: hidden;
-}
-
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 30% 20%, var(--color-accent) 0%, transparent 50%);
-    opacity: 0.08;
-    pointer-events: none;
-}
-
-.hero-badge {
-    display: inline-block;
-    background: var(--color-accent);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.35rem 0.75rem;
-    border-radius: 20px;
-    margin-bottom: 1rem;
-    letter-spacing: 0.02em;
 }
 
 .hero-title {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .hero-title-main {
-    font-size: 2.75rem;
+    font-size: 3rem;
     font-weight: 800;
     letter-spacing: -0.04em;
     background: linear-gradient(135deg, var(--color-text) 0%, var(--color-accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    display: block;
     line-height: 1.1;
+}
+
+.hero-live-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--color-green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
 }
 
 .hero-subtitle {
     color: var(--color-text-muted);
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 500;
-    margin-top: 0.75rem;
-    letter-spacing: 0.1em;
+    margin-top: 0.5rem;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-}
-
-.hero-divider {
-    width: 60px;
-    height: 3px;
-    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
-    margin: 1.5rem auto 0;
-    border-radius: 2px;
-}
-
-/* Light theme hero adjustments */
-[data-theme="light"] .hero {
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-}
-
-[data-theme="light"] .hero::before {
-    opacity: 0.05;
 }
 
 @media (max-width: 600px) {
     .hero {
-        padding: 2rem 1rem;
+        padding: 1.5rem 1rem;
     }
 
     .hero-title-main {
-        font-size: 2rem;
+        font-size: 2.25rem;
     }
 
     .hero-subtitle {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        letter-spacing: 0.1em;
+    }
+
+    .hero-live-dot {
+        width: 8px;
+        height: 8px;
     }
 }
 

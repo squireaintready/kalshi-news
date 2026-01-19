@@ -41,8 +41,8 @@
                     <a href="{{ url_for('login') }}" class="nav-btn nav-btn-secondary">Login</a>
                     <a href="{{ url_for('signup') }}" class="nav-btn nav-btn-primary">Sign Up</a>
                 {% endif %}
-                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-                    <span class="theme-icon">🌙</span>
+                <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme">
+                    <span class="theme-icon" id="theme-icon">☀️</span>
                 </button>
             </nav>
         </div>
@@ -73,28 +73,37 @@
         </div>
     </footer>
     <script>
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        }
-
-        function updateThemeIcon(theme) {
-            const icon = document.querySelector('.theme-icon');
-            if (icon) {
-                // Show sun when dark (to switch to light), moon when light (to switch to dark)
-                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-            }
-        }
-
-        // Initialize theme on page load
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
+            // Get saved theme or default to dark
+            var savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+
+            // Update icon based on theme
+            function updateIcon(theme) {
+                var icon = document.getElementById('theme-icon');
+                if (icon) {
+                    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                }
+            }
+
+            // Initialize icon
+            updateIcon(savedTheme);
+
+            // Add click listener when DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+                var btn = document.getElementById('theme-toggle-btn');
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        var currentTheme = document.documentElement.getAttribute('data-theme');
+                        var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('theme', newTheme);
+                        updateIcon(newTheme);
+                    });
+                }
+                // Update icon again after DOM ready
+                updateIcon(localStorage.getItem('theme') || 'dark');
+            });
         })();
     </script>
 </body>
