@@ -3,6 +3,7 @@ Kalshi API Client for fetching prediction markets data
 """
 import requests
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 import config
@@ -175,8 +176,8 @@ class KalshiClient:
         if interesting_events:
             logger.info(f"First event: {interesting_events[0].get('event_ticker')} - {interesting_events[0].get('title', '')[:40]}")
 
-        # Fetch markets from interesting events
-        for event in interesting_events[:20]:  # Check top 20 events
+        # Fetch markets from interesting events (with rate limiting)
+        for i, event in enumerate(interesting_events[:10]):  # Check top 10 events (reduced from 20)
             event_ticker = event.get("event_ticker")
             if event_ticker:
                 markets = self.get_markets_by_event(event_ticker)
@@ -186,6 +187,10 @@ class KalshiClient:
 
             if len(all_markets) >= 50:
                 break
+
+            # Rate limiting: pause between requests to avoid 429 errors
+            if i < len(interesting_events) - 1:
+                time.sleep(0.3)
 
         # Also try general markets endpoint as backup
         if len(all_markets) < 20:
