@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Prediction Pulse - Latest Market Analysis{% endblock %}
+{% block title %}Prediction Pulse - News With Money Behind It{% endblock %}
 
 {% block content %}
 <div class="hero">
-    <h1>What's Moving in Prediction Markets</h1>
-    <p class="hero-subtitle">Deep dives into the bets everyone's talking about. Updated constantly.</p>
+    <h1>News With Money Behind It</h1>
+    <p class="hero-subtitle">The stories people are betting on. Real stakes. Real insight.</p>
 </div>
 
 {% if articles %}
@@ -47,15 +47,15 @@
 {% else %}
 <div class="empty-state">
     <div class="empty-icon">📰</div>
-    <h2>No Articles Yet</h2>
-    <p>Check back soon! We're generating fresh analysis of trending prediction markets.</p>
-    <a href="{{ url_for('refresh_articles') }}" class="btn btn-primary">Generate Articles Now</a>
+    <h2>No Stories Yet</h2>
+    <p>Check back soon! We're gathering the latest news people are putting money on.</p>
+    <a href="{{ url_for('refresh_articles') }}" class="btn btn-primary">Load Stories</a>
 </div>
 {% endif %}
 
 <div class="page-actions">
     <a href="{{ url_for('refresh_articles') }}" class="btn btn-secondary">
-        🔄 Refresh Articles
+        🔄 Get Latest Stories
     </a>
 </div>
 {% endblock %}

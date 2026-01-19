@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="AI-powered news articles about Kalshi prediction markets">
+    <meta name="description" content="News with money behind it. Stories people are betting on, analyzed and explained.">
     <meta property="og:title" content="{% block og_title %}Prediction Pulse{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Stay informed with AI-generated analysis of trending prediction markets{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The news stories people are putting money on. Real stakes. Real insight.{% endblock %}">
     <meta property="og:type" content="website">
     <title>{% block title %}Prediction Pulse{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -19,7 +19,6 @@
     <header class="site-header">
         <div class="container">
             <a href="{{ url_for('index') }}" class="logo">
-                <span class="logo-icon">📊</span>
                 <span class="logo-text">Prediction Pulse</span>
             </a>
             <nav class="main-nav">
@@ -35,6 +34,9 @@
                     <a href="{{ url_for('login') }}" class="nav-btn nav-btn-secondary">Login</a>
                     <a href="{{ url_for('signup') }}" class="nav-btn nav-btn-primary">Sign Up</a>
                 {% endif %}
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -59,9 +61,33 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>Prediction Pulse &copy; {{ now.year if now else 2024 }} — Articles generated from <a href="https://kalshi.com" target="_blank">Kalshi</a> prediction markets.</p>
-            <p class="disclaimer">This is not financial advice. Prediction markets carry risk. Do your own research.</p>
+            <p>Prediction Pulse &copy; {{ now.year if now else 2024 }} — News with money behind it. Data from <a href="https://kalshi.com" target="_blank">Kalshi</a>.</p>
+            <p class="disclaimer">Not financial advice. Markets can be wrong. Do your own research.</p>
         </div>
     </footer>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('.theme-icon');
+            if (icon) {
+                icon.textContent = theme === 'light' ? '🌙' : '☀️';
+            }
+        }
+
+        // Initialize theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        })();
+    </script>
 </body>
 </html>

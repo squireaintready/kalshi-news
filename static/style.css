@@ -1,20 +1,35 @@
-/* CSS Variables */
-:root {
-    --color-bg: #0f0f0f;
-    --color-bg-secondary: #1a1a1a;
-    --color-bg-card: #1f1f1f;
-    --color-text: #e5e5e5;
+/* CSS Variables - Dark Theme (Default) */
+:root, [data-theme="dark"] {
+    --color-bg: #0a0a0a;
+    --color-bg-secondary: #141414;
+    --color-bg-card: #1a1a1a;
+    --color-text: #f0f0f0;
     --color-text-muted: #888;
-    --color-accent: #6366f1;
-    --color-accent-hover: #818cf8;
+    --color-accent: #3b82f6;
+    --color-accent-hover: #60a5fa;
     --color-green: #22c55e;
     --color-red: #ef4444;
     --color-yellow: #eab308;
-    --color-border: #2a2a2a;
+    --color-border: #262626;
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-serif: 'Merriweather', Georgia, serif;
-    --max-width: 1200px;
-    --content-width: 720px;
+    --max-width: 1100px;
+    --content-width: 680px;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-bg-card: #ffffff;
+    --color-text: #1a1a1a;
+    --color-text-muted: #6b7280;
+    --color-accent: #2563eb;
+    --color-accent-hover: #1d4ed8;
+    --color-green: #16a34a;
+    --color-red: #dc2626;
+    --color-yellow: #ca8a04;
+    --color-border: #e5e7eb;
 }
 
 /* Reset & Base */
@@ -80,6 +95,13 @@ a, button, input, select, textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .logo {
@@ -87,16 +109,30 @@ a, button, input, select, textarea {
     align-items: center;
     gap: 0.5rem;
     font-weight: 700;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     color: var(--color-text);
+    letter-spacing: -0.02em;
 }
 
 .logo:hover {
     color: var(--color-text);
 }
 
-.logo-icon {
-    font-size: 1.5rem;
+/* Theme Toggle */
+.theme-toggle {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    background: var(--color-bg-card);
+    border-color: var(--color-text-muted);
 }
 
 .main-nav {
@@ -126,21 +162,22 @@ a, button, input, select, textarea {
 .hero {
     text-align: center;
     margin-bottom: 3rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, var(--color-text), var(--color-accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-text);
+    letter-spacing: -0.03em;
 }
 
 .hero-subtitle {
     color: var(--color-text-muted);
-    font-size: 1.125rem;
+    font-size: 1rem;
+    font-style: italic;
 }
 
 /* Articles Grid */
@@ -154,15 +191,23 @@ a, button, input, select, textarea {
 .article-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 1.25rem;
     overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .article-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--color-accent);
+    border-color: var(--color-text-muted);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .article-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .article-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .article-card h3 {
@@ -218,10 +263,12 @@ a, button, input, select, textarea {
 }
 
 .article-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.4;
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.35;
     margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
 }
 
 .article-teaser {
@@ -489,6 +536,21 @@ a, button, input, select, textarea {
 
 .about-content p {
     margin-bottom: 1.25rem;
+}
+
+.about-content .lead {
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--color-text);
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1rem;
+    margin-bottom: 2rem;
+}
+
+.about-content .muted {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
 }
 
 .about-content h2 {
