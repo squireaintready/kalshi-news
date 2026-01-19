@@ -344,14 +344,39 @@ a, button, input, select, textarea {
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    padding: 1.25rem;
+    padding: 1rem;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+    .market-info-box {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
 }
 
 .market-stat {
     text-align: center;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.market-stat .stat-value {
+    word-break: break-word;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+    .market-stat .stat-value {
+        font-size: 0.85rem;
+    }
+
+    .market-stat .stat-label {
+        font-size: 0.65rem;
+    }
 }
 
 .stat-label {
@@ -1364,17 +1389,52 @@ a, button, input, select, textarea {
     }
 
     .article-full .article-title {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+        line-height: 1.3;
     }
 
-    .market-info-box {
-        grid-template-columns: repeat(2, 1fr);
+    .article-full {
+        padding: 0 0.25rem;
+    }
+
+    .article-content {
+        font-size: 1rem;
+        line-height: 1.7;
     }
 
     .article-meta-top {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .article-badges {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .share-section {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 0.75rem;
+    }
+
+    .share-buttons {
+        width: 100%;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .share-btn {
+        flex: 1;
+        text-align: center;
+        padding: 0.75rem;
+        min-height: 44px;
+    }
+
+    .disclaimer-box {
+        font-size: 0.85rem;
+        padding: 1rem;
     }
 
     .site-header .container {
