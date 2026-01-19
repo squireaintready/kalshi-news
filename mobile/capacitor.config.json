@@ -1,0 +1,14 @@
+{
+  "appId": "com.predictionpulse.app",
+  "appName": "Prediction Pulse",
+  "webDir": "www",
+  "server": {
+    "url": "https://kalshi-news-production.up.railway.app",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "always",
+    "allowsLinkPreview": false,
+    "backgroundColor": "#0f0f0f"
+  }
+}
