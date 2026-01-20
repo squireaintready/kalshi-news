@@ -46,15 +46,14 @@ app.secret_key = config.FLASK_SECRET_KEY
 # Note: Railway handles SSL termination, so we don't force HTTPS at app level
 csp = {
     'default-src': "'self'",
-    'style-src': ["'self'", "'unsafe-inline'"],  # Allow inline styles
-    'script-src': ["'self'", "'unsafe-inline'"],  # Allow inline scripts for interactivity
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'script-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", "data:"],
-    'font-src': ["'self'"],
+    'font-src': ["'self'", "https://fonts.gstatic.com"],
 }
 Talisman(
     app,
     content_security_policy=csp,
-    content_security_policy_nonce_in=['script-src'],
     force_https=False,  # Railway handles SSL termination at load balancer
     strict_transport_security=True,
     strict_transport_security_max_age=31536000,  # 1 year
